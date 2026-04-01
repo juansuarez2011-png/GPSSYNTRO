@@ -15,14 +15,11 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); }
         
-        /* Contenedor del Mapa */
         #map-container { flex: 1; height: 100vh; position: relative; transition: all 0.3s ease; border-right: 2px solid #ccc; }
         #map { height: 100%; width: 100%; background: #222; }
 
-        /* Panel Lateral */
         .panel { width: 550px; background: var(--bg); display: flex; flex-direction: column; height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; transition: all 0.3s ease; }
         
-        /* HEADER CON LOGO ESTILO 3D */
         .header { 
             background: var(--s-navy); 
             color: white; 
@@ -38,7 +35,6 @@
 
         .btn-toggle { background: var(--s-lime); color: var(--s-navy); border: none; padding: 8px 15px; border-radius: 10px; font-size: 0.7rem; font-weight: bold; cursor: pointer; box-shadow: inset -2px -2px 4px rgba(0,0,0,0.2), 2px 2px 4px rgba(0,0,0,0.2); }
 
-        /* TOOLBAR Neumórfico */
         .toolbar { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .btn-gps { 
             grid-column: span 2; 
@@ -57,20 +53,17 @@
         
         button.action { padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-weight: bold; background: white; color: var(--s-navy); cursor: pointer; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
 
-        /* STAT CARDS */
         .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 15px; margin-bottom: 10px; }
         .stat-card { background: white; padding: 10px; border-radius: 12px; text-align: center; border: 1px solid #ddd; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05), 3px 3px 6px rgba(0,0,0,0.05); }
         .stat-card small { font-size: 0.65rem; color: #666; display: block; text-transform: uppercase; margin-bottom: 3px; }
         .stat-card b { font-size: 1.1rem; color: var(--s-navy); }
 
-        /* TABLA DE DATOS */
         .table-wrap { flex: 1; overflow-y: auto; margin: 0 15px 15px 15px; background: white; border-radius: 15px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 500px; }
         th { background: #f1f3f5; padding: 12px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #dee2e6; color: var(--s-navy); }
         td { padding: 10px 5px; text-align: center; border-bottom: 1px solid #eee; }
         .coord-val { font-family: 'Courier New', monospace; font-weight: bold; color: #d32f2f; }
 
-        /* MODOS DE VISUALIZACIÓN */
         .map-hidden { display: none !important; }
         .panel-full { width: 100% !important; }
 
@@ -78,8 +71,6 @@
             body { flex-direction: column; }
             #map-container { height: 40vh; width: 100%; border-right: none; border-bottom: 2px solid #ccc; }
             .panel { width: 100%; height: 60vh; }
-            #map-container.map-hidden { height: 0; border: none; }
-            .panel.panel-full { height: 100vh; }
         }
     </style>
 </head>
@@ -96,7 +87,7 @@
     
     <div class="toolbar">
         <button id="mainBtn" class="btn-gps" onclick="capturar()">📍 CAPTURAR VÉRTICE</button>
-        <button class="action" onclick="exportGeo()">📥 GEOJSON</button>
+        <button class="action" onclick="exportGeo()">📥 GEOJSON (POLÍGONO)</button>
         <button class="action" onclick="exportCSV()">📥 EXCEL (CSV)</button>
         <button style="color:#e74c3c; grid-column: span 2; font-size: 0.8rem; background: none; border: none; margin-top: 5px; cursor:pointer; font-weight:bold;" onclick="limpiar()">🗑️ BORRAR PROYECTO ACTUAL</button>
     </div>
@@ -128,6 +119,8 @@
 <script>
     let datos = JSON.parse(localStorage.getItem('syntro_v12_7')) || [];
     let marcadores = [];
+    let areaHectareas = 0;
+    let perimetroMetros = 0;
     
     const map = L.map('map', { zoomControl: false }).setView([10.5, -67], 6);
     L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { 
@@ -152,45 +145,20 @@
 
     function capturar() {
         const btn = document.getElementById('mainBtn');
-        btn.innerText = "🛰️ FIJANDO SATÉLITES...";
-        btn.style.opacity = "0.7";
-
-        // CONFIGURACIÓN DE ALTA PRECISIÓN REFORZADA
-        const opcionesGps = {
-            enableHighAccuracy: true, // Obliga a usar sensor GPS
-            timeout: 15000,           // Espera hasta 15 seg por señal
-            maximumAge: 0             // <--- NO USAR UBICACIÓN GUARDADA EN CACHÉ
-        };
-
+        btn.innerText = "🛰️ BUSCANDO GPS...";
+        
         navigator.geolocation.getCurrentPosition(pos => {
-            const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-            
-            // Si la precisión es muy mala, el usuario lo sabrá por consola
-            console.log("Precisión lograda: " + accuracy + " metros.");
-
+            const { latitude: lat, longitude: lng } = pos.coords;
             const utm = getUTMData(lat, lng);
             
-            datos.push({ 
-                lat, lng, 
-                x: utm.x, y: utm.y, 
-                zone: utm.zone, 
-                tipo: 'POL', 
-                dist: 0, 
-                obs: '' 
-            });
-
+            datos.push({ lat, lng, x: utm.x, y: utm.y, zone: utm.zone, tipo: 'POL', dist: 0, obs: '' });
             btn.innerText = "📍 CAPTURAR VÉRTICE";
-            btn.style.opacity = "1";
             actualizar();
-            
-            // Centrar mapa con zoom cercano
             map.setView([lat, lng], 19);
-
         }, err => {
-            alert("Error: " + (err.code === 3 ? "Tiempo agotado. Intente en un lugar más despejado." : "No se pudo obtener ubicación."));
+            alert("Error de señal GPS");
             btn.innerText = "📍 CAPTURAR VÉRTICE";
-            btn.style.opacity = "1";
-        }, opcionesGps);
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     }
 
     function actualizar() {
@@ -207,56 +175,76 @@
         datos.forEach((p, i) => {
             if(p.tipo === 'POL') {
                 if(lastX !== null) p.dist = Math.sqrt(Math.pow(p.x - lastX, 2) + Math.pow(p.y - lastY, 2));
-                else p.dist = 0;
                 totalP += p.dist;
                 lastX = p.x; lastY = p.y;
                 ptsPol.push([p.lat, p.lng]);
             }
-
-            const color = p.tipo === 'POL' ? '#184e77' : '#e67e22';
-            const m = L.circleMarker([p.lat, p.lng], { radius: 7, color: 'white', weight: 2, fillColor: color, fillOpacity: 1 }).addTo(map);
+            const m = L.circleMarker([p.lat, p.lng], { radius: 6, color: 'white', weight: 2, fillColor: '#184e77', fillOpacity: 1 }).addTo(map);
             marcadores.push(m);
-
             if(i === 0) document.getElementById('utm-zona').innerText = p.zone + "N";
 
             tbody.innerHTML += `<tr>
-                <td><b>${i+1}</b></td>
-                <td><select onchange="cambiarTipo(${i}, this.value)"><option value="POL" ${p.tipo==='POL'?'selected':''}>POL</option><option value="PTO" ${p.tipo==='PTO'?'selected':''}>PTO</option></select></td>
+                <td>${i+1}</td>
+                <td>${p.tipo}</td>
                 <td class="coord-val">${p.x.toFixed(2)}</td><td class="coord-val">${p.y.toFixed(2)}</td>
-                <td style="color:blue; font-weight:bold">${p.dist.toFixed(2)}</td>
-                <td><input type="text" value="${p.obs}" onchange="cambiarObs(${i}, this.value)" style="width:100%"></td>
-                <td onclick="borrar(${i})" style="color:red; cursor:pointer; font-weight:bold">×</td>
+                <td>${p.dist.toFixed(2)}</td>
+                <td><input type="text" value="${p.obs}" onchange="cambiarObs(${i}, this.value)" style="width:80px"></td>
+                <td onclick="borrar(${i})" style="color:red; cursor:pointer">×</td>
             </tr>`;
         });
 
         capaPol.setLatLngs(ptsPol);
-        document.getElementById('perim-val').innerText = totalP.toFixed(2);
+        perimetroMetros = totalP;
+        document.getElementById('perim-val').innerText = perimetroMetros.toFixed(2);
+        
         if(ptsPol.length > 2) {
             const area = turf.area(capaPol.toGeoJSON());
-            document.getElementById('area-val').innerText = (area / 10000).toFixed(4);
-        } else {
-            document.getElementById('area-val').innerText = "0.0000";
+            areaHectareas = area / 10000;
+            document.getElementById('area-val').innerText = areaHectareas.toFixed(4);
         }
     }
 
-    function cambiarTipo(i, v) { datos[i].tipo = v; actualizar(); }
     function cambiarObs(i, v) { datos[i].obs = v; localStorage.setItem('syntro_v12_7', JSON.stringify(datos)); }
     function borrar(i) { if(confirm("¿Eliminar?")) { datos.splice(i,1); actualizar(); } }
-    function limpiar() { if(confirm("¿Borrar todo?")) { datos = []; actualizar(); } }
+    function limpiar() { if(confirm("¿Borrar proyecto?")) { datos = []; actualizar(); } }
 
+    // EXPORTACIÓN MEJORADA CON POLÍGONO INCLUIDO
     function exportGeo() {
-        if(datos.length === 0) return;
-        const fc = { type: "FeatureCollection", features: datos.map((p, i) => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lng, p.lat] }, properties: { ID: i+1, TIPO: p.tipo, X: p.x, Y: p.y, OBS: p.obs } })) };
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(fc)], {type: 'application/json'}));
-        a.download = `SYN_DATA_${Date.now()}.geojson`; a.click();
+        if(datos.length < 3) { alert("Necesitas al menos 3 puntos para un polígono."); return; }
+        
+        // 1. Crear los puntos individuales
+        const features = datos.map((p, i) => ({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+            properties: { id: i+1, tipo: p.tipo, este: p.x, norte: p.y, obs: p.obs }
+        }));
+
+        // 2. Crear el Polígono (Cerramos el anillo repitiendo el primer punto)
+        const coordsPol = datos.filter(p => p.tipo === 'POL').map(p => [p.lng, p.lat]);
+        coordsPol.push(coordsPol[0]); // Cerrar polígono
+
+        features.push({
+            type: "Feature",
+            geometry: { type: "Polygon", coordinates: [coordsPol] },
+            properties: { 
+                nombre: "Polígono de Levantamiento",
+                area_ha: areaHectareas.toFixed(4),
+                perimetro_m: perimetroMetros.toFixed(2),
+                fecha: new Date().toISOString()
+            }
+        });
+
+        const geojson = { type: "FeatureCollection", features: features };
+        const blob = new Blob([JSON.stringify(geojson)], {type: 'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `SYN_POLIGONO_${Date.now()}.geojson`; a.click();
     }
 
     function exportCSV() {
-        if(datos.length === 0) return;
         let csv = "ID,TIPO,X_ESTE,Y_NORTE,DIST,OBS\n";
         datos.forEach((p, i) => { csv += `${i+1},${p.tipo},${p.x},${p.y},${p.dist},"${p.obs}"\n`; });
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
-        a.download = `REPORTE_SYN_${Date.now()}.csv`; a.click();
+        a.download = `SYN_REPORTE_${Date.now()}.csv`; a.click();
     }
 
     actualizar();
