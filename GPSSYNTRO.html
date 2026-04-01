@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Geo GPS Syntro Pro</title>
+    
+    <link rel="stylesheet" href="leaflet.css" />
+    <script src="leaflet.js"></script>
+    <script src="proj4.js"></script>
+    <script src="turf.min.js"></script>
+    
+    <style>
+        :root { 
+            --s-navy: #184e77; 
+            --s-lime: #d9ed92; 
+            --s-blue: #1e6091; 
+            --bg: #f4f7f6;
+        }
+        
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; flex-direction: row; background: var(--bg); }
+        #map { flex: 1; z-index: 1; cursor: crosshair; }
+
+        /* Panel Lateral */
+        .panel { 
+            width: 400px; background: white; z-index: 10; display: flex; flex-direction: column; 
+            box-shadow: -2px 0 15px rgba(0,0,0,0.1); border-left: 3px solid var(--s-blue);
+        }
+
+        /* Encabezado con LOGO */
+        .header { background: var(--s-navy); color: white; padding: 10px; text-align: center; border-bottom: 5px solid var(--s-lime); }
+        .header img { height: 45px; margin-bottom: 5px; }
+
+        .content { padding: 15px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+
+        /* Dashboard de Datos */
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .data-card { background: #fff; border: 1px solid #e0e0e0; padding: 8px; border-radius: 8px; text-align: center; border-left: 4px solid var(--s-blue); }
+        .data-card label { font-size: 0.65rem; font-weight: bold; color: #7f8c8d; text-transform: uppercase; display: block; }
+        .data-card span { font-size: 1rem; font-weight: 700; color: var(--s-navy); }
+
+        /* Botones Principales */
+        .group-main-btns { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .btn { padding: 12px; border: none; border-radius: 6px; font-weight: bold; text-transform: uppercase; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-capture { background: var(--s-navy); color: white; width: 100%; font-size: 0.9rem; }
+        .btn-capture:active { transform: translateY(1px); }
+        .btn-import { background: var(--s-lime); color: var(--s-navy); }
+
+        /* Tabla de Atributos */
+        .table-container { border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; background: white; }
+        th { background: #f8f9fa; padding: 10px; color: #7f8c8d; font-weight: bold; border-bottom: 2px solid #ddd; position: sticky; top: 0; }
+        td { padding: 10px; text-align: center; border-bottom: 1px solid #f1f3f4; color: #2c3e50; }
+        .v-marker { background: var(--s-navy); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; border: 2px solid white; }
+
+        /* Botones Exportar */
+        .group-export-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .btn-export { background: white; color: var(--s-blue); border: 1px solid # dadce0; font-size: 0.7rem; }
+        .btn-export:hover { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="panel">
+    <div class="header">
+        <img src="logo.png" alt="Syntro Logo" onerror="this.style.display='none'">
+        <div style="font-size: 0.8rem; letter-spacing: 1.5px; font-weight: 300;">GPS INGENIERÍA</div>
+    </div>
+
+    <div class="content">
+        <input type="file" id="inGeoJSON" style="display:none" accept=".geojson" onchange="importarMapaBase(event)">
+        <button class="btn btn-import" onclick="document.getElementById('inGeoJSON').click()">📂 Cargar Mapa Base (GeoJSON)</button>
+        
+        <div class="dashboard">
+            <div class="data-card"><label>Hectáreas</label><span id="res-ha">0.0000</span></div>
+            <div class="data-card"><label>Perímetro (m)</label><span id="res-pm">0.00</span></div>
+        </div>
+
+        <button class="btn btn-capture" onclick="capturarVértice()">📍 FIJAR VÉRTICE ACTUAL</button>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>VRT</th>
+                        <th>X (ESTE)</th>
+                        <th>Y (NORTE)</th>
+                        <th>DIST (m)</th>
+                        <th>ACC</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-atributos"></tbody>
+            </table>
+        </div>
+
+        <div class="group-export-btns">
+            <button class="btn btn-export" onclick="exportarCSV()">DESCARGAR CSV</button>
+            <button class="btn btn-export" onclick="exportarPoligonoGeoJSON()">DESCARGAR GEOJSON</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Configuración UTM Zona 19N (Región Zulia)
+    const utm19N = "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs";
+    const wgs84 = "EPSG:4326";
+
+    // Inicializar Mapa centrado en Maracaibo
+    const map = L.map('map').setView([10.6447, -71.6106], 15);
+    L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
+
+    let verticesData = []; 
+    let marcadoresCapas = [];
+    let poligonoLevantamiento = L.polygon([], {color: '#d9ed92', weight: 4, fillOpacity: 0.4}).addTo(map);
+    let mapaBaseCapa = L.geoJSON().addTo(map);
+
+    // Permitir captura manual por clic
+    map.on('click', e => agregarPunto(e.latlng.lat, e.latlng.lng));
+
+    function capturarVértice() {
+        if (!navigator.geolocation) return alert("GPS no disponible.");
+        
+        navigator.geolocation.getCurrentPosition(pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            map.setView([lat, lng], 19); // Auto-enfoque
+            agregarPunto(lat, lng);
+        }, err => alert("Error de ubicación. Verifica permisos."), { enableHighAccuracy: true });
+    }
+
+    function agregarPunto(lat, lng) {
+        // Conversión UTM inmediata con proj4 local
+        const utm = proj4(wgs84, utm19N, [lng, lat]);
+        
+        // Calcular distancia al vértice anterior
+        let dist = 0;
+        if (verticesData.length > 0) {
+            const last = verticesData[verticesData.length - 1];
+            dist = map.distance([last.lat, last.lng], [lat, lng]);
+        }
+
+        const punto = { id: Date.now(), lat, lng, x: utm[0], y: utm[1], dist: dist };
+        verticesData.push(punto);
+        renderizarLevantamiento();
+    }
+
+    function eliminarVértice(id) {
+        verticesData = verticesData.filter(v => v.id !== id);
+        // Recalcular distancias
+        verticesData.forEach((v, i) => {
+            if (i === 0) v.dist = 0;
+            else v.dist = map.distance([verticesData[i-1].lat, verticesData[i-1].lng], [v.lat, v.lng]);
+        });
+        renderizarLevantamiento();
+    }
+
+    function renderizarLevantamiento() {
+        marcadoresCapas.forEach(m => map.removeLayer(m));
+        marcadoresCapas = [];
+        const tbody = document.getElementById('tabla-atributos');
+        tbody.innerHTML = "";
+        let perimetroTotal = 0;
+
+        poligonoLevantamiento.setLatLngs(verticesData.map(v => [v.lat, v.lng]));
+
+        verticesData.forEach((v, i) => {
+            const m = L.marker([v.lat, v.lng], {
+                icon: L.divIcon({ className: 'v-marker', html: `B${i+1}` })
+            }).addTo(map);
+            marcadoresCapas.push(m);
+            perimetroTotal += v.dist;
+
+            tbody.innerHTML += `<tr>
+                <td><b>B${i+1}</b></td>
+                <td>${v.x.toFixed(1)}</td>
+                <td>${v.y.toFixed(1)}</td>
+                <td>${v.dist.toFixed(1)}</td>
+                <td><button onclick="eliminarVértice(${v.id})" style="color:red; border:none; background:none; cursor:pointer;">×</button></td>
+            </tr>`;
+        });
+
+        document.getElementById('res-pm').innerText = perimetroTotal.toFixed(2);
+        if (verticesData.length > 2) {
+            const area = turf.area(poligonoLevantamiento.toGeoJSON());
+            document.getElementById('res-ha').innerText = (area / 10000).toFixed(4);
+        } else {
+            document.getElementById('res-ha').innerText = "0.0000";
+        }
+    }
+
+    function importarMapaBase(e) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            mapaBaseCapa.clearLayers();
+            const geo = JSON.parse(ev.target.result);
+            mapaBaseCapa.addData(geo);
+            map.fitBounds(mapaBaseCapa.getBounds());
+        };
+        reader.readAsText(e.target.files[0]);
+    }
+
+    function exportarCSV() {
+        let csv = "PUNTO,ESTE_X,NORTE_Y,DISTANCIA_PARCIAL_M,LAT,LNG\n";
+        verticesData.forEach((v, i) => csv += `B${i+1},${v.x},${v.y},${v.dist},${v.lat},${v.lng}\n`);
+        descargar(new Blob([csv], {type: 'text/csv'}), "Levantamiento_Syntro.csv");
+    }
+
+    function exportarPoligonoGeoJSON() {
+        const data = poligonoLevantamiento.toGeoJSON();
+        descargar(new Blob([JSON.stringify(data)], {type: 'application/json'}), "Poligono_Syntro.geojson");
+    }
+
+    function descargar(blob, n) {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = n; a.click();
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Syntro - Convertidor KML a GeoJSON</title>
+    <script src="togeojson.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f7f6; }
+        .box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: inline-block; }
+        .btn-file { background: #184e77; color: white; padding: 15px 30px; border-radius: 30px; cursor: pointer; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2 style="color:#184e77">Convertidor KML a GeoJSON</h2>
+        <p>Selecciona tu archivo de Google Earth para convertirlo al formato de ArcGIS Pro y GPSSyntro</p>
+        <input type="file" id="fileIn" style="display:none" onchange="convertir(event)">
+        <label for="fileIn" class="btn-file">SELECCIONAR KML / KMZ</label>
+        <div id="status" style="margin-top:20px; color: green; font-weight: bold;"></div>
+    </div>
+
+    <script>
+        function convertir(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const kml = new DOMParser().parseFromString(ev.target.result, "text/xml");
+                const geojson = toGeoJSON.kml(kml);
+                const blob = new Blob([JSON.stringify(geojson)], {type: "application/json"});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = file.name.replace(".kml", ".geojson");
+                a.click();
+                document.getElementById('status').innerText = "¡Conversión Exitosa! Descargando...";
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
