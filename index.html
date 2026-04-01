@@ -3,250 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Geo GPS Syntro Pro</title>
+    <title>Syntro GPS Pro V12 - Mapa Base</title>
     
-    <link rel="icon" type="image/png" href="icono.png?v=5">
-    <link rel="apple-touch-icon" href="icono.png?v=5">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#184e77">
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
-    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <link rel="stylesheet" href="leaflet.css" />
+    <script src="leaflet.js"></script>
+    <script src="proj4.js"></script>
+    <script src="turf.min.js"></script>
     
     <style>
-        :root { --s-navy: #184e77; --s-lime: #d9ed92; --s-blue: #1e6091; --bg: #f4f7f6; }
+        :root { --s-navy: #184e77; --s-lime: #d9ed92; --bg: #e9ecef; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); }
         
-        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; flex-direction: row; background: var(--bg); overflow: hidden; }
-        
-        #map { flex: 1; height: 100%; transition: 0.3s; }
+        #map-container { flex: 1; height: 100vh; position: relative; border-right: 2px solid #ccc; transition: all 0.3s ease; }
+        #map { height: 100%; width: 100%; background: #333; }
+
+        /* Estado Oculto */
+        #map-container.map-hidden { flex: 0; min-width: 0; width: 0; overflow: hidden; border: none; }
+
+        /* Botón Flotante para abrir/cerrar */
+        .btn-toggle-map {
+            position: absolute; top: 10px; left: 10px; z-index: 1100;
+            padding: 10px 15px; background: white; border: 2px solid var(--s-navy);
+            border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.7rem;
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            display: block;
+        }
+
+        /* Cuando el mapa está oculto, el botón flota sobre el panel */
+        .map-hidden .btn-toggle-map { position: fixed; left: 10px; top: 10px; background: var(--s-lime); color: var(--s-navy); }
 
         .panel { 
-            width: 450px; background: white; display: flex; flex-direction: column; 
-            box-shadow: -2px 0 10px rgba(0,0,0,0.1); border-left: 3px solid var(--s-blue);
-            position: relative; height: 100vh; transition: 0.3s;
+            width: 450px; background: var(--bg); display: flex; flex-direction: column; 
+            z-index: 10; height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.1);
         }
 
-        .header { background: var(--s-navy); color: white; padding: 5px; text-align: center; border-bottom: 3px solid var(--s-lime); flex-shrink: 0; }
-        .header img { height: 30px; margin-bottom: 2px; }
-        .header div { font-size: 0.5rem; letter-spacing: 1px; font-weight: 300; }
+        .header { background: var(--s-navy); color: white; padding: 10px; text-align: center; border-bottom: 4px solid var(--s-lime); }
+        .header img { height: 30px; }
 
-        .content { 
-            flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px;
-            margin-bottom: 70px; /* Margen para asegurar visibilidad de botones inferiores */
+        .toolbar { padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-gps { grid-column: span 2; background: var(--s-navy); color: white; height: 50px; border: none; font-size: 0.9rem; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        
+        button { 
+            padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-weight: bold; 
+            cursor: pointer; text-transform: uppercase; font-size: 0.65rem;
+            background: var(--bg); color: var(--s-navy);
+            box-shadow: 3px 3px 6px #bebebe, -3px -3px 6px #ffffff;
         }
+        button:active { box-shadow: inset 2px 2px 5px #bebebe, inset -2px -2px 5px #ffffff; }
 
-        .btn-import { 
-            background: var(--s-lime); color: var(--s-navy); padding: 8px; 
-            font-size: 0.65rem; border-radius: 5px; border: none; font-weight: bold; cursor: pointer;
-        }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px; margin-bottom: 5px; }
+        .stat-card { background: var(--bg); padding: 8px; border-radius: 10px; text-align: center; box-shadow: inset 2px 2px 5px #bebebe, inset -2px -2px 5px #ffffff; }
+        .stat-card b { font-size: 1rem; color: var(--s-navy); display: block; }
 
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-        .data-card { background: #fff; border: 1px solid #eee; padding: 5px; border-radius: 8px; text-align: center; border-left: 3px solid var(--s-blue); }
-        .data-card label { font-size: 0.55rem; color: #7f8c8d; display: block; text-transform: uppercase; }
-        .data-card span { font-size: 0.9rem; font-weight: bold; color: var(--s-navy); }
-
-        .btn-main-row { display: flex; gap: 5px; }
-        .btn { min-height: 40px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; cursor: pointer; border: none; text-transform: uppercase; }
-        .btn-capture { background: var(--s-navy); color: white; flex: 2; }
-        .btn-toggle { background: #f8f9fa; color: var(--s-navy); border: 1px solid var(--s-navy); flex: 1; }
-
-        .table-container { border: 1px solid #eee; border-radius: 8px; overflow-x: auto; background: #fff; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.6rem; min-width: 440px; }
-        th { background: #f8f9fa; padding: 6px; border-bottom: 1px solid #ddd; color: #666; }
-        td { padding: 5px; border-bottom: 1px solid #eee; text-align: center; }
-
-        .input-table { width: 100%; border: 1px solid #ccc; font-size: 0.6rem; padding: 2px; border-radius: 3px; }
-        .select-table { font-size: 0.6rem; border: 1px solid var(--s-blue); border-radius: 3px; }
-
-        /* PIE DE DESCARGA FIJO */
-        .footer-fixed {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 65px;
-            background: #fff; border-top: 2px solid var(--s-lime);
-            display: grid; grid-template-columns: 1fr 1fr 50px; gap: 8px; padding: 10px;
-            z-index: 2000;
-        }
-        .btn-dl { background: #f8f9fa; border: 1px solid #ccc; font-size: 0.65rem; color: #333; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .table-wrap { flex: 1; overflow: auto; margin: 10px; background: white; border-radius: 8px; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.65rem; }
+        th { background: #f1f3f5; padding: 8px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #ddd; }
+        td { padding: 6px; text-align: center; border-bottom: 1px solid #eee; }
+        
+        .utm-txt { font-weight: bold; font-family: monospace; }
+        .dist-txt { color: #1e6091; font-weight: bold; }
 
         @media (max-width: 850px) {
             body { flex-direction: column; }
-            #map { height: 35%; width: 100%; flex: none; }
-            .panel { width: 100%; height: 65%; border-left: none; border-top: 3px solid var(--s-blue); }
-            body.map-hidden #map { height: 0; }
-            body.map-hidden .panel { height: 100vh; }
+            #map-container { height: 40vh; flex: none; width: 100%; }
+            #map-container.map-hidden { height: 0; }
+            .panel { width: 100%; height: 60vh; }
+            .panel.full-screen { height: 100vh; }
         }
     </style>
 </head>
-<body id="main-body">
+<body>
 
-<div id="map"></div>
+<div id="map-container">
+    <button class="btn-toggle-map" onclick="toggleMapa()" id="mapBtn">🗺️ OCULTAR MAPA</button>
+    <div id="map"></div>
+</div>
 
-<div class="panel">
+<div class="panel" id="sidePanel">
     <div class="header">
-        <img src="logo.png" alt="Syntro">
-        <div>GPS INGENIERÍA - VENEZUELA</div>
+        <img src="logo.png" alt="SYNTRO" onerror="this.style.display='none'">
+        <div style="font-weight: bold; font-size: 0.8rem; margin-top:5px;">GPS FIELD PRO V12</div>
     </div>
 
-    <div class="content">
-        <input type="file" id="inGeo" style="display:none" accept=".geojson" onchange="importar(event)">
-        <button class="btn-import" onclick="document.getElementById('inGeo').click()">📂 CARGAR MAPA BASE (GEOJSON)</button>
-
-        <div class="dashboard">
-            <div class="data-card"><label>Hectáreas</label><span id="res-ha">0.0000</span></div>
-            <div class="data-card"><label>Perímetro (m)</label><span id="res-pm">0.00</span></div>
-        </div>
-
-        <div class="btn-main-row">
-            <button class="btn btn-capture" onclick="capturar()">📍 FIJAR VÉRTICE</button>
-            <button class="btn btn-toggle" onclick="toggleMap()">🎬 MAPA</button>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>VRT</th>
-                        <th>TIPO</th>
-                        <th>ESTE (X)</th>
-                        <th>NORTE (Y)</th>
-                        <th>OBSERVACIÓN</th>
-                        <th>ACC</th>
-                    </tr>
-                </thead>
-                <tbody id="tabla-atributos"></tbody>
-            </table>
-        </div>
+    <div class="toolbar">
+        <button class="btn-gps" onclick="capturar()">📍 FIJAR VÉRTICE (GPS)</button>
+        <button style="background:#e0e7ff" onclick="document.getElementById('fileIn').click()">📂 IMPORTAR BASE</button>
+        <input type="file" id="fileIn" style="display:none" accept=".geojson" onchange="importarBase(event)">
+        
+        <button id="backupBtn" style="display:none; background: var(--s-lime);" onclick="toggleMapa()">🗺️ MOSTRAR MAPA</button>
+        
+        <button style="color:#e67e22" onclick="nuevoProyecto()">📁 NUEVO PROYECTO</button>
+        <button onclick="exportGeo()">📥 GEOJSON</button>
+        <button onclick="exportCSV()">📥 CSV</button>
+        <button style="color:red; grid-column: span 2;" onclick="limpiar()">🗑️ BORRAR TODO</button>
     </div>
 
-    <div class="footer-fixed">
-        <button class="btn btn-dl" onclick="exportCSV()">DESCARGAR CSV</button>
-        <button class="btn btn-dl" onclick="exportGeo()">GEOJSON</button>
-        <button class="btn" style="background:#f2dede; color:red; border:1px solid #ebccd1;" onclick="limpiar()">🗑️</button>
+    <div class="stats">
+        <div class="stat-card"><small>ÁREA (ha)</small><b id="area-val">0.0000</b></div>
+        <div class="stat-card"><small>PERÍMETRO (m)</small><b id="perim-val">0.00</b></div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>VRT</th>
+                    <th>UTM X / Y</th>
+                    <th>DIST(m)</th>
+                    <th>TIPO</th>
+                    <th>OBS</th>
+                    <th>ELIM</th>
+                </tr>
+            </thead>
+            <tbody id="body-tabla"></tbody>
+        </table>
     </div>
 </div>
 
 <script>
     const utm19N = "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs";
-    const wgs84 = "EPSG:4326";
-    let vertices = JSON.parse(localStorage.getItem('syntro_v5')) || [];
-    let markers = [];
+    let datos = JSON.parse(localStorage.getItem('syntro_v12_base')) || [];
+    let marcadores = [];
+    let capaBase = null;
 
-    const map = L.map('map', { zoomControl: false }).setView([10.64, -71.61], 15);
-    L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3']}).addTo(map);
-    let poly = L.polygon([], {color: '#d9ed92', weight: 3, fillOpacity: 0.3}).addTo(map);
+    const map = L.map('map', { zoomControl: false }).setView([10.64, -71.61], 16);
+    const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Google Satélite'
+    }).addTo(map);
 
-    function toggleMap() { 
-        document.getElementById('main-body').classList.toggle('map-hidden');
-        setTimeout(() => map.invalidateSize(), 400);
+    const capaPol = L.polygon([], {color: '#d9ed92', weight: 3, fillOpacity: 0.3}).addTo(map);
+
+    function toggleMapa() {
+        const container = document.getElementById('map-container');
+        const panel = document.getElementById('sidePanel');
+        const btn = document.getElementById('mapBtn');
+        const backupBtn = document.getElementById('backupBtn');
+        
+        container.classList.toggle('map-hidden');
+        
+        if(container.classList.contains('map-hidden')) {
+            btn.innerText = "🗺️ MOSTRAR MAPA";
+            backupBtn.style.display = "block";
+            if(window.innerWidth <= 850) panel.classList.add('full-screen');
+        } else {
+            btn.innerText = "🗺️ OCULTAR MAPA";
+            backupBtn.style.display = "none";
+            panel.classList.remove('full-screen');
+            setTimeout(() => { map.invalidateSize(); }, 300);
+        }
     }
 
     function capturar() {
-        navigator.geolocation.getCurrentPosition(p => {
-            const { latitude: lat, longitude: lng } = p.coords;
-            const utm = proj4(wgs84, utm19N, [lng, lat]);
-            vertices.push({ 
-                lat, lng, 
-                x: utm[0], y: utm[1], 
-                dist: 0, 
-                tipo: 'Poligono', 
-                obs: '' 
-            });
-            render();
+        navigator.geolocation.getCurrentPosition(pos => {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            const utm = proj4("EPSG:4326", utm19N, [lng, lat]);
+            let d = 0;
+            const soloPol = datos.filter(x => x.tipo === 'POL');
+            if(soloPol.length > 0) d = map.distance([soloPol[soloPol.length-1].lat, soloPol[soloPol.length-1].lng], [lat, lng]);
+            datos.push({ lat, lng, x: utm[0], y: utm[1], tipo: 'POL', obs: '', dist: d });
+            actualizar();
+            map.panTo([lat, lng]);
         }, null, { enableHighAccuracy: true });
     }
 
-    function render() {
-        localStorage.setItem('syntro_v5', JSON.stringify(vertices));
-        markers.forEach(m => map.removeLayer(m));
-        markers = [];
-        const tbody = document.getElementById('tabla-atributos');
+    function actualizar() {
+        localStorage.setItem('syntro_v12_base', JSON.stringify(datos));
+        marcadores.forEach(m => map.removeLayer(m));
+        marcadores = [];
+        const tbody = document.getElementById('body-tabla');
         tbody.innerHTML = "";
-        let pts = [], pm = 0;
+        let ptsPol = [];
+        let totalP = 0;
 
-        vertices.forEach((v, i) => {
-            if (v.tipo === 'Poligono') {
-                if (pts.length > 0) {
-                    v.dist = map.distance(pts[pts.length - 1], [v.lat, v.lng]);
-                    pm += v.dist;
-                }
-                pts.push([v.lat, v.lng]);
+        datos.forEach((p, i) => {
+            const m = L.circleMarker([p.lat, p.lng], { radius: 6, fillColor: p.tipo==='POL'?'#184e77':'#e67e22', color: '#fff', weight: 1, fillOpacity: 1 }).addTo(map).bindTooltip(`V${i+1}`, {permanent:true});
+            marcadores.push(m);
+            if(p.tipo === 'POL') {
+                if(ptsPol.length > 0) totalP += map.distance(ptsPol[ptsPol.length-1], [p.lat, p.lng]);
+                ptsPol.push([p.lat, p.lng]);
             }
-            
-            const m = L.circleMarker([v.lat, v.lng], {
-                radius: v.tipo === 'Poligono' ? 5 : 7, 
-                color: v.tipo === 'Poligono' ? '#184e77' : '#e74c3c', 
-                fillOpacity: 1
-            }).addTo(map).bindPopup(`V${i+1}: ${v.obs}`);
-            markers.push(m);
-
-            tbody.innerHTML += `
-                <tr>
-                    <td><b>V${i+1}</b></td>
-                    <td>
-                        <select class="select-table" onchange="updateRow(${i}, 'tipo', this.value)">
-                            <option value="Poligono" ${v.tipo === 'Poligono' ? 'selected' : ''}>Pol</option>
-                            <option value="Punto" ${v.tipo === 'Punto' ? 'selected' : ''}>Pto</option>
-                        </select>
-                    </td>
-                    <td>${v.x.toFixed(0)}</td>
-                    <td>${v.y.toFixed(0)}</td>
-                    <td><input class="input-table" type="text" value="${v.obs}" onchange="updateRow(${i}, 'obs', this.value)" placeholder="..."></td>
-                    <td onclick="borrar(${i})">❌</td>
-                </tr>`;
+            tbody.innerHTML += `<tr>
+                <td><b>${i+1}</b></td>
+                <td class="utm-txt">${p.x.toFixed(0)}<br>${p.y.toFixed(0)}</td>
+                <td class="dist-txt">${p.dist.toFixed(1)}</td>
+                <td><select onchange="cambiar(${i},'tipo',this.value)"><option value="POL" ${p.tipo==='POL'?'selected':''}>POL</option><option value="PTO" ${p.tipo==='PTO'?'selected':''}>PTO</option></select></td>
+                <td><input type="text" value="${p.obs}" onchange="cambiar(${i},'obs',this.value)"></td>
+                <td onclick="borrar(${i})" style="cursor:pointer">🗑️</td>
+            </tr>`;
         });
-
-        poly.setLatLngs(pts);
-        document.getElementById('res-pm').innerText = pm.toFixed(2);
-        if (pts.length > 2) {
-            const area = turf.area(poly.toGeoJSON());
-            document.getElementById('res-ha').innerText = (area / 10000).toFixed(4);
-        } else {
-            document.getElementById('res-ha').innerText = "0.0000";
-        }
+        capaPol.setLatLngs(ptsPol);
+        document.getElementById('perim-val').innerText = totalP.toFixed(2);
+        if(ptsPol.length > 2) document.getElementById('area-val').innerText = (turf.area(capaPol.toGeoJSON())/10000).toFixed(4);
     }
 
-    function updateRow(i, field, val) {
-        vertices[i][field] = val;
-        render();
-    }
-
-    function borrar(i) { vertices.splice(i, 1); render(); }
-    function limpiar() { if(confirm("¿Borrar todos los datos?")) { vertices = []; render(); } }
-
-    function exportCSV() {
-        let c = "VRT,TIPO,X,Y,DISTANCIA,OBSERVACION\n";
-        vertices.forEach((v, i) => c += `V${i+1},${v.tipo},${v.x.toFixed(2)},${v.y.toFixed(2)},${v.dist.toFixed(2)},${v.obs}\n`);
-        descargar(new Blob([c], {type:'text/csv'}), "Syntro_Levantamiento.csv");
-    }
-
-    function exportGeo() {
-        const feat = vertices.map((v, i) => ({
-            type: "Feature",
-            properties: { id: i+1, obs: v.obs, tipo: v.tipo },
-            geometry: { type: "Point", coordinates: [v.lng, v.lat] }
-        }));
-        if(vertices.length >= 3) {
-            feat.push(poly.toGeoJSON());
-        }
-        descargar(new Blob([JSON.stringify({type: "FeatureCollection", features: feat})], {type:'application/json'}), "Syntro_Data.geojson");
-    }
-
-    function importar(e) {
+    function importarBase(e) {
         const reader = new FileReader();
-        reader.onload = ev => {
-            const geo = JSON.parse(ev.target.result);
-            L.geoJSON(geo, {style: {color: '#3498db', weight: 2, dashArray: '4'}}).addTo(map);
+        reader.onload = (ev) => {
+            const geoData = JSON.parse(ev.target.result);
+            if(capaBase) map.removeLayer(capaBase);
+            capaBase = L.geoJSON(geoData, {style: { color: '#3b82f6', weight: 2, dashArray: '5,5', fillOpacity: 0 }}).addTo(map);
+            map.fitBounds(capaBase.getBounds());
         };
         reader.readAsText(e.target.files[0]);
     }
 
-    function descargar(blob, name) {
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    function cambiar(i, c, v) { datos[i][c] = v; actualizar(); }
+    function borrar(i) { if(confirm("¿Eliminar?")) { datos.splice(i, 1); actualizar(); } }
+    function nuevoProyecto() { if(confirm("¿Archivar y nuevo?")) { localStorage.setItem('syn_arc_'+Date.now(), JSON.stringify(datos)); datos = []; actualizar(); } }
+    function limpiar() { if(confirm("¿Borrar todo?")) { datos = []; actualizar(); } }
+    
+    function exportGeo() {
+        const fc = { type: "FeatureCollection", features: datos.map((p, i) => ({ type: "Feature", geometry: { type: "Point", coordinates: [p.lng, p.lat] }, properties: { ID: i+1, TIPO: p.tipo, X: p.x, Y: p.y, DIST: p.dist, OBS: p.obs } })) };
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(fc)], {type: 'application/json'})); a.download = `SYN_FIELD_${Date.now()}.geojson`; a.click();
     }
 
-    render();
+    function exportCSV() {
+        let csv = "VRT,TIPO,UTM_X,UTM_Y,DISTANCIA,OBS\n";
+        datos.forEach((p, i) => csv += `${i+1},${p.tipo},${p.x},${p.y},${p.dist},"${p.obs}"\n`);
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = `SYN_DATA.csv`; a.click();
+    }
+    actualizar();
 </script>
 </body>
 </html>
