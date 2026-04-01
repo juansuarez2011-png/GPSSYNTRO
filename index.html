@@ -16,11 +16,15 @@
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); }
         
         /* Contenedor del Mapa */
-        #map-container { flex: 1; height: 100vh; position: relative; transition: all 0.3s ease; border-right: 2px solid #ccc; }
+        #map-container { flex: 1; height: 100vh; position: relative; transition: all 0.3s ease; border-right: 2px solid #ccc; display: block; }
         #map { height: 100%; width: 100%; background: #222; }
 
-        /* Panel Lateral Ajustado */
+        /* ESTADO OCULTO - REFORZADO */
+        #map-container.map-hidden { display: none !important; }
+
+        /* Panel Lateral */
         .panel { width: 600px; background: var(--bg); display: flex; flex-direction: column; height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; transition: all 0.3s ease; }
+        .panel.panel-full { width: 100% !important; } /* Ocupa todo cuando el mapa se oculta */
         
         .header { 
             background: var(--s-navy); color: white; padding: 12px 15px; 
@@ -29,7 +33,6 @@
         }
         .header img { height: 40px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); }
 
-        /* Toolbar y Botones 3D */
         .toolbar { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .btn-gps { 
             grid-column: span 2; background: var(--s-navy); color: white; height: 70px; 
@@ -40,25 +43,26 @@
         
         button.action { padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-weight: bold; background: white; color: var(--s-navy); cursor: pointer; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
 
-        /* Estadísticas */
         .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 15px; margin-bottom: 15px; }
         .stat-card { background: white; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #ddd; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05); }
         .stat-card small { font-size: 0.7rem; color: #666; display: block; text-transform: uppercase; }
         .stat-card b { font-size: 1.2rem; color: var(--s-navy); }
 
-        /* ARREGLO DE TABLA: No comprimida y Scrolleable */
+        /* TABLA ANCHA Y LEGIBLE */
         .table-wrap { flex: 1; overflow-x: auto; overflow-y: auto; margin: 0 15px 15px 15px; background: white; border-radius: 15px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 600px; }
-        th { background: #f8f9fa; padding: 15px 10px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--s-lime); color: var(--s-navy); text-align: center; }
+        th { background: #f8f9fa; padding: 15px 10px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--s-lime); color: var(--s-navy); }
         td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #eee; }
         
-        .coord-val { font-family: 'Courier New', monospace; font-weight: bold; color: #c0392b; font-size: 0.95rem; }
-        select.tipo-select { padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-weight: bold; color: var(--s-navy); background: #fdfdfd; }
+        .coord-val { font-family: 'Courier New', monospace; font-weight: bold; color: #c0392b; }
+        .tipo-select { padding: 5px; border-radius: 5px; font-weight: bold; color: var(--s-navy); border: 1px solid #ccc; }
 
         @media (max-width: 850px) {
             body { flex-direction: column; }
-            #map-container { height: 35vh; width: 100%; border-right: none; border-bottom: 2px solid #ccc; }
-            .panel { width: 100%; height: 65vh; }
+            #map-container { height: 40vh; width: 100%; border-right: none; border-bottom: 2px solid #ccc; }
+            .panel { width: 100%; height: 60vh; }
+            #map-container.map-hidden { display: none !important; }
+            .panel.panel-full { height: 100vh !important; }
         }
     </style>
 </head>
@@ -69,13 +73,13 @@
 <div class="panel" id="main-panel">
     <div class="header">
         <img src="logo.png" alt="Syntro">
-        <span style="font-weight: bold; letter-spacing: 1px;">V12.7 PRO</span>
-        <button class="btn-toggle" onclick="toggleVista()" style="background:var(--s-lime); border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">MAPA</button>
+        <span style="font-weight: bold;">V12.7 PRO</span>
+        <button class="action" onclick="toggleVista()" style="background:var(--s-lime); border:none; padding:8px 15px; border-radius:10px; color:var(--s-navy); font-weight:bold;">🗺️ MAPA ON/OFF</button>
     </div>
     
     <div class="toolbar">
         <button id="mainBtn" class="btn-gps" onclick="capturar()">📍 CAPTURAR VÉRTICE</button>
-        <button class="action" onclick="exportGeo()">📥 GEOJSON (POL)</button>
+        <button class="action" onclick="exportGeo()">📥 GEOJSON</button>
         <button class="action" onclick="exportCSV()">📥 EXCEL (CSV)</button>
         <button style="color:#e74c3c; grid-column: span 2; font-size: 0.85rem; background: none; border: none; margin-top: 5px; cursor:pointer; font-weight:bold;" onclick="limpiar()">🗑️ BORRAR TODO</button>
     </div>
@@ -115,8 +119,14 @@
     const capaPol = L.polygon([], {color: '#d9ed92', weight: 4, fillOpacity: 0.3}).addTo(map);
 
     function toggleVista() {
-        document.getElementById('map-container').classList.toggle('map-hidden');
-        setTimeout(() => map.invalidateSize(), 300);
+        const mapCont = document.getElementById('map-container');
+        const panel = document.getElementById('main-panel');
+        
+        mapCont.classList.toggle('map-hidden');
+        panel.classList.toggle('panel-full');
+        
+        // Refrescar mapa si se vuelve a mostrar
+        setTimeout(() => map.invalidateSize(), 350);
     }
 
     function getUTMData(lat, lng) {
@@ -128,7 +138,7 @@
 
     function capturar() {
         const btn = document.getElementById('mainBtn');
-        btn.innerText = "🛰️ OBTENIENDO SEÑAL...";
+        btn.innerText = "🛰️ BUSCANDO SEÑAL...";
         navigator.geolocation.getCurrentPosition(pos => {
             const { latitude: lat, longitude: lng } = pos.coords;
             const utm = getUTMData(lat, lng);
@@ -137,7 +147,7 @@
             actualizar();
             map.setView([lat, lng], 19);
         }, err => {
-            alert("Error: Revisa el GPS");
+            alert("Error de GPS: Asegúrate de estar a cielo abierto.");
             btn.innerText = "📍 CAPTURAR VÉRTICE";
         }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
     }
@@ -176,8 +186,8 @@
                 <td class="coord-val">${p.x.toFixed(2)}</td>
                 <td class="coord-val">${p.y.toFixed(2)}</td>
                 <td style="color:blue; font-weight:bold">${p.dist.toFixed(2)}</td>
-                <td><input type="text" value="${p.obs}" onchange="cambiarObs(${i}, this.value)" style="width:100%; border:1px solid #ddd; padding:5px; border-radius:4px;"></td>
-                <td onclick="borrar(${i})" style="color:red; cursor:pointer; font-weight:bold; font-size:1.2rem;">×</td>
+                <td><input type="text" value="${p.obs}" onchange="cambiarObs(${i}, this.value)" style="width:100%; padding:5px;"></td>
+                <td onclick="borrar(${i})" style="color:red; cursor:pointer; font-weight:bold;">×</td>
             </tr>`;
         });
 
@@ -195,8 +205,8 @@
 
     function cambiarTipo(i, v) { datos[i].tipo = v; actualizar(); }
     function cambiarObs(i, v) { datos[i].obs = v; localStorage.setItem('syntro_v12_7', JSON.stringify(datos)); }
-    function borrar(i) { if(confirm("¿Eliminar punto?")) { datos.splice(i,1); actualizar(); } }
-    function limpiar() { if(confirm("¿Borrar todo el levantamiento?")) { datos = []; actualizar(); } }
+    function borrar(i) { if(confirm("¿Eliminar?")) { datos.splice(i,1); actualizar(); } }
+    function limpiar() { if(confirm("¿Borrar todo?")) { datos = []; actualizar(); } }
 
     function exportGeo() {
         if(datos.length === 0) return;
@@ -211,18 +221,18 @@
             features.push({
                 type: "Feature",
                 geometry: { type: "Polygon", coordinates: [polPts] },
-                properties: { NOMBRE: "AREA_CALCULADA", AREA_HA: areaHectareas.toFixed(4), PERIM_M: perimetroMetros.toFixed(2) }
+                properties: { AREA_HA: areaHectareas.toFixed(4), PERIM_M: perimetroMetros.toFixed(2) }
             });
         }
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ type: "FeatureCollection", features })], {type: 'application/json'}));
-        a.download = `SYN_GEO_${Date.now()}.geojson`; a.click();
+        a.download = `SYN_LEV_${Date.now()}.geojson`; a.click();
     }
 
     function exportCSV() {
         let csv = "ID,TIPO,X_ESTE,Y_NORTE,DIST,OBS\n";
         datos.forEach((p, i) => { csv += `${i+1},${p.tipo},${p.x},${p.y},${p.dist},"${p.obs}"\n`; });
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
-        a.download = `SYN_CSV_${Date.now()}.csv`; a.click();
+        a.download = `SYN_LEV_${Date.now()}.csv`; a.click();
     }
 
     actualizar();
