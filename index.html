@@ -8,10 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="GPSSyntro">
-    <link rel="apple-touch-icon" href="icono.png">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#184e77">
-
+    
     <link rel="stylesheet" href="leaflet.css" />
     <script src="leaflet.js"></script>
     <script src="proj4.js"></script>
@@ -23,6 +20,7 @@
             --s-lime: #d9ed92; 
             --s-blue: #1e6091; 
             --bg: #f4f7f6;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -33,120 +31,157 @@
             background: var(--bg); overflow: hidden; 
         }
 
-        #map { flex: 1; z-index: 1; height: 100%; transition: all 0.3s ease; }
+        /* Estilo del Mapa con transición suave */
+        #map { 
+            flex: 1; 
+            z-index: 1; 
+            height: 100%; 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
 
+        /* Panel Lateral (PC) / Inferior (Móvil) */
         .panel { 
-            width: 400px; background: white; z-index: 10; display: flex; 
-            flex-direction: column; box-shadow: -2px 0 15px rgba(0,0,0,0.1); 
-            border-left: 3px solid var(--s-blue); transition: all 0.3s ease;
+            width: 420px; 
+            background: white; 
+            z-index: 10; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: -2px 0 15px rgba(0,0,0,0.1); 
+            border-left: 3px solid var(--s-blue); 
+            transition: all 0.4s ease;
         }
 
         .header { 
-            background: var(--s-navy); color: white; padding: 10px; 
-            text-align: center; border-bottom: 4px solid var(--s-lime);
+            background: var(--s-navy); 
+            color: white; 
+            padding: 15px; 
+            text-align: center; 
+            border-bottom: 4px solid var(--s-lime);
             flex-shrink: 0;
         }
-        .header img { height: 35px; object-fit: contain; }
+        .header img { height: 40px; margin-bottom: 5px; }
 
         .content { 
-            padding: 12px; flex: 1; overflow-y: auto; 
-            display: flex; flex-direction: column; gap: 10px; 
+            padding: 15px; 
+            flex: 1; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
         }
 
-        /* Botón Flotante para ocultar/mostrar mapa */
-        #btn-toggle-map {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 999;
-            background: var(--s-navy);
-            color: white;
-            border: 2px solid var(--s-lime);
-            border-radius: 50px;
-            padding: 10px 20px;
-            font-weight: bold;
-            font-size: 0.8rem;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
-            display: none; /* Solo se muestra en móviles */
-        }
-
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        /* Dashboard de datos 3D */
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .data-card { 
-            background: #fff; border: 1px solid #e0e0e0; padding: 8px; 
-            border-radius: 8px; text-align: center; border-left: 3px solid var(--s-blue); 
+            background: #fff; 
+            border: 1px solid #e0e0e0; 
+            padding: 10px; 
+            border-radius: 10px; 
+            text-align: center; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+            border-bottom: 3px solid var(--s-blue);
         }
-        .data-card label { font-size: 0.6rem; font-weight: bold; color: #7f8c8d; text-transform: uppercase; display: block; }
-        .data-card span { font-size: 0.95rem; font-weight: 700; color: var(--s-navy); }
+        .data-card label { font-size: 0.7rem; font-weight: bold; color: #7f8c8d; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .data-card span { font-size: 1.1rem; font-weight: 800; color: var(--s-navy); }
+
+        /* Botonera Principal */
+        .main-actions {
+            display: flex;
+            gap: 8px;
+        }
 
         .btn { 
-            min-height: 46px; padding: 10px; border: none; border-radius: 8px; 
-            font-weight: bold; text-transform: uppercase; font-size: 0.75rem; 
-            cursor: pointer; display: flex; align-items: center; justify-content: center; 
-            gap: 8px; transition: 0.2s; 
+            min-height: 50px; 
+            padding: 10px; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            font-size: 0.75rem; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+            transition: transform 0.1s, background 0.2s;
+            box-shadow: var(--shadow);
         }
-        .btn-capture { background: var(--s-navy); color: white; width: 100%; box-shadow: 0 4px #0d2b42; }
-        .btn-import { background: var(--s-lime); color: var(--s-navy); }
+        .btn:active { transform: scale(0.98); }
 
+        .btn-capture { background: var(--s-navy); color: white; flex: 2; }
+        .btn-toggle { background: #f8f9fa; color: var(--s-navy); border: 2px solid var(--s-navy); flex: 1; }
+        .btn-import { background: var(--s-lime); color: var(--s-navy); width: 100%; }
+
+        /* Tabla Estilizada */
         .table-container { 
-            border: 1px solid #e0e0e0; border-radius: 8px; 
-            overflow-x: auto; background: white; margin-top: 5px;
+            border: 1px solid #e0e0e0; 
+            border-radius: 10px; 
+            overflow-x: auto; 
+            background: white; 
         }
-        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; min-width: 300px; }
-        th { background: #f8f9fa; padding: 10px 5px; color: #7f8c8d; border-bottom: 2px solid #ddd; }
-        td { padding: 10px 5px; text-align: center; border-bottom: 1px solid #f1f3f4; color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { background: #f4f7f6; padding: 12px 8px; color: #555; border-bottom: 2px solid #ddd; text-align: center; }
+        td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #eee; color: #333; }
 
         .v-marker { 
             background: var(--s-navy); color: white; border-radius: 50%; 
-            width: 24px; height: 24px; display: flex; align-items: center; 
-            justify-content: center; font-size: 10px; font-weight: bold; 
+            width: 26px; height: 26px; display: flex; align-items: center; 
+            justify-content: center; font-size: 11px; font-weight: bold; 
             border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
+        /* MODO MAPA OCULTO */
+        body.map-hidden #map { width: 0; flex: none; visibility: hidden; }
+        body.map-hidden .panel { width: 100%; border-left: none; }
+
         /* ADAPTACIÓN MÓVIL */
-        @media (max-width: 768px) {
+        @media (max-width: 850px) {
             body { flex-direction: column; }
-            #btn-toggle-map { display: block; } /* Mostrar botón en móviles */
-            #map { height: 50vh; width: 100%; }
-            .panel { width: 100%; height: 50vh; border-left: none; border-top: 3px solid var(--s-blue); }
+            #map { height: 45vh; width: 100%; flex: none; }
+            .panel { width: 100%; height: 55vh; border-left: none; border-top: 4px solid var(--s-blue); flex: 1; }
             
-            /* Clase para ocultar el mapa */
-            body.map-hidden #map { height: 0vh; overflow: hidden; }
-            body.map-hidden #btn-toggle-map { background: #27ae60; }
-            body.map-hidden .panel { height: 100vh; }
+            body.map-hidden #map { height: 0; }
+            body.map-hidden .panel { height: 100vh; border-top: none; }
         }
     </style>
 </head>
 <body id="main-body">
-
-<button id="btn-toggle-map" onclick="toggleMapa()">🗺️ OCULTAR MAPA</button>
 
 <div id="map"></div>
 
 <div class="panel">
     <div class="header">
         <img src="logo.png" alt="Syntro Academy">
-        <div style="font-size: 0.65rem; letter-spacing: 1.5px; font-weight: 300;">GPS INGENIERÍA</div>
+        <div style="font-size: 0.7rem; letter-spacing: 2px; font-weight: 600;">GPS INGENIERÍA</div>
     </div>
 
     <div class="content">
         <input type="file" id="inGeoJSON" style="display:none" accept=".geojson" onchange="importarMapaBase(event)">
-        <button class="btn btn-import" onclick="document.getElementById('inGeoJSON').click()">📂 CARGAR MAPA BASE</button>
+        <button class="btn btn-import" onclick="document.getElementById('inGeoJSON').click()">
+            📂 CARGAR MAPA BASE (GEOJSON)
+        </button>
         
         <div class="dashboard">
             <div class="data-card"><label>Hectáreas</label><span id="res-ha">0.0000</span></div>
             <div class="data-card"><label>Perímetro (m)</label><span id="res-pm">0.00</span></div>
         </div>
 
-        <button class="btn btn-capture" onclick="capturarVértice()">📍 FIJAR VÉRTICE ACTUAL</button>
+        <div class="main-actions">
+            <button class="btn btn-capture" onclick="capturarVértice()">
+                📍 FIJAR VÉRTICE ACTUAL
+            </button>
+            <button class="btn btn-toggle" onclick="toggleMapa()" id="btn-toggle">
+                <span id="t-icon">🙈</span> <span id="t-text">MAPA</span>
+            </button>
+        </div>
 
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>VRT</th>
-                        <th>ESTE (X)</th>
-                        <th>NORTE (Y)</th>
+                        <th>X (ESTE)</th>
+                        <th>Y (NORTE)</th>
                         <th>DIST(m)</th>
                         <th>ACC</th>
                     </tr>
@@ -155,34 +190,33 @@
             </table>
         </div>
 
-        <div class="group-export-btns" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:5px; padding-bottom: 60px;">
-            <button class="btn" style="background:#fff; border:1px solid #ddd;" onclick="exportarCSV()">CSV</button>
-            <button class="btn" style="background:#fff; border:1px solid #ddd;" onclick="exportarPoligonoGeoJSON()">GEOJSON</button>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top: auto; padding-bottom: 10px;">
+            <button class="btn" style="background:#fff; border:1px solid #ccc;" onclick="exportarCSV()">DESCARGAR CSV</button>
+            <button class="btn" style="background:#fff; border:1px solid #ccc;" onclick="exportarPoligonoGeoJSON()">DESCARGAR GEOJSON</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Función para ocultar/mostrar mapa
+    // Lógica para Ocultar/Ver Mapa
     function toggleMapa() {
         const body = document.getElementById('main-body');
-        const btn = document.getElementById('btn-toggle-map');
+        const tText = document.getElementById('t-text');
+        const tIcon = document.getElementById('t-icon');
         
         body.classList.toggle('map-hidden');
         
         if (body.classList.contains('map-hidden')) {
-            btn.innerHTML = "📊 VER MAPA";
+            tText.innerText = "MAPA";
+            tIcon.innerText = "👀";
         } else {
-            btn.innerHTML = "🗺️ OCULTAR MAPA";
-            // Forzar recálculo del tamaño del mapa al volver a mostrarlo
-            setTimeout(() => { map.invalidateSize(); }, 300);
+            tText.innerText = "MAPA";
+            tIcon.innerText = "🙈";
+            setTimeout(() => { map.invalidateSize(); }, 400);
         }
     }
 
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./service-worker.js').catch(err => console.log(err));
-    }
-
+    // Configuración Geográfica
     const utm19N = "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs";
     const wgs84 = "EPSG:4326";
 
@@ -198,16 +232,21 @@
     let poligonoLevantamiento = L.polygon([], {color: '#d9ed92', weight: 3, fillOpacity: 0.4}).addTo(map);
     let mapaBaseCapa = L.geoJSON().addTo(map);
 
+    // Click manual en mapa
     map.on('click', e => agregarPunto(e.latlng.lat, e.latlng.lng));
 
     function capturarVértice() {
         if (!navigator.geolocation) return alert("GPS no disponible.");
-        const options = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+        
+        const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+        
         navigator.geolocation.getCurrentPosition(pos => {
             const { latitude: lat, longitude: lng } = pos.coords;
             map.setView([lat, lng], 19);
             agregarPunto(lat, lng);
-        }, err => alert("Activa el GPS en tu navegador."), options);
+        }, err => {
+            alert("Error de ubicación. Verifica que el sitio use HTTPS y que el GPS esté encendido.");
+        }, options);
     }
 
     function agregarPunto(lat, lng) {
@@ -240,17 +279,17 @@
 
         verticesData.forEach((v, i) => {
             const m = L.marker([v.lat, v.lng], {
-                icon: L.divIcon({ className: 'v-marker', html: `B${i+1}` })
+                icon: L.divIcon({ className: 'v-marker', html: `V${i+1}` }) // Vértices como V1, V2...
             }).addTo(map);
             marcadoresCapas.push(m);
             perimetroTotal += v.dist;
             
             tbody.innerHTML += `<tr>
-                <td><b>B${i+1}</b></td>
+                <td><b>V${i+1}</b></td>
                 <td>${v.x.toFixed(0)}</td>
                 <td>${v.y.toFixed(0)}</td>
                 <td>${v.dist.toFixed(1)}</td>
-                <td><button onclick="eliminarVértice(${v.id})" style="color:red; border:none; background:none; font-size:1.3rem; font-weight:bold;">×</button></td>
+                <td><button onclick="eliminarVértice(${v.id})" style="color:#e74c3c; border:none; background:none; font-size:1.2rem; cursor:pointer;">❌</button></td>
             </tr>`;
         });
 
@@ -275,7 +314,7 @@
 
     function exportarCSV() {
         let csv = "PUNTO,ESTE_X,NORTE_Y,DIST_M,LAT,LNG\n";
-        verticesData.forEach((v, i) => csv += `B${i+1},${v.x},${v.y},${v.dist},${v.lat},${v.lng}\n`);
+        verticesData.forEach((v, i) => csv += `V${i+1},${v.x},${v.y},${v.dist},${v.lat},${v.lng}\n`);
         descargar(new Blob([csv], {type: 'text/csv'}), "Levantamiento_Syntro.csv");
     }
 
