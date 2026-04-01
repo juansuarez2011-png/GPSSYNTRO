@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Geo GPS Syntro Pro</title>
     
-    <link rel="icon" type="image/png" href="icono.png?v=4">
-    <link rel="apple-touch-icon" href="icono.png?v=4">
+    <link rel="icon" type="image/png" href="icono.png?v=5">
+    <link rel="apple-touch-icon" href="icono.png?v=5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#184e77">
 
@@ -24,24 +24,22 @@
         #map { flex: 1; height: 100%; transition: 0.3s; }
 
         .panel { 
-            width: 420px; background: white; display: flex; flex-direction: column; 
+            width: 450px; background: white; display: flex; flex-direction: column; 
             box-shadow: -2px 0 10px rgba(0,0,0,0.1); border-left: 3px solid var(--s-blue);
             position: relative; height: 100vh; transition: 0.3s;
         }
 
-        /* Cabecera Compacta */
         .header { background: var(--s-navy); color: white; padding: 5px; text-align: center; border-bottom: 3px solid var(--s-lime); flex-shrink: 0; }
         .header img { height: 30px; margin-bottom: 2px; }
         .header div { font-size: 0.5rem; letter-spacing: 1px; font-weight: 300; }
 
         .content { 
-            flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;
-            margin-bottom: 65px; /* Espacio para botones de descarga */
+            flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px;
+            margin-bottom: 70px; /* Margen para asegurar visibilidad de botones inferiores */
         }
 
-        /* Botón Cargar pequeño */
         .btn-import { 
-            background: var(--s-lime); color: var(--s-navy); padding: 6px; 
+            background: var(--s-lime); color: var(--s-navy); padding: 8px; 
             font-size: 0.65rem; border-radius: 5px; border: none; font-weight: bold; cursor: pointer;
         }
 
@@ -56,20 +54,22 @@
         .btn-toggle { background: #f8f9fa; color: var(--s-navy); border: 1px solid var(--s-navy); flex: 1; }
 
         .table-container { border: 1px solid #eee; border-radius: 8px; overflow-x: auto; background: #fff; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.65rem; min-width: 380px; }
-        th { background: #f8f9fa; padding: 8px; border-bottom: 1px solid #ddd; color: #666; }
-        td { padding: 6px; border-bottom: 1px solid #eee; text-align: center; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.6rem; min-width: 440px; }
+        th { background: #f8f9fa; padding: 6px; border-bottom: 1px solid #ddd; color: #666; }
+        td { padding: 5px; border-bottom: 1px solid #eee; text-align: center; }
 
-        /* PIE DE DESCARGA FIJO Y COMPACTO */
+        .input-table { width: 100%; border: 1px solid #ccc; font-size: 0.6rem; padding: 2px; border-radius: 3px; }
+        .select-table { font-size: 0.6rem; border: 1px solid var(--s-blue); border-radius: 3px; }
+
+        /* PIE DE DESCARGA FIJO */
         .footer-fixed {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 60px;
-            background: #fff; border-top: 1px solid #ddd;
-            display: grid; grid-template-columns: 1fr 1fr 45px; gap: 8px; padding: 10px;
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 65px;
+            background: #fff; border-top: 2px solid var(--s-lime);
+            display: grid; grid-template-columns: 1fr 1fr 50px; gap: 8px; padding: 10px;
             z-index: 2000;
         }
-        .btn-dl { background: #f8f9fa; border: 1px solid #ccc; font-size: 0.6rem; color: #444; }
+        .btn-dl { background: #f8f9fa; border: 1px solid #ccc; font-size: 0.65rem; color: #333; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
-        /* MÓVIL */
         @media (max-width: 850px) {
             body { flex-direction: column; }
             #map { height: 35%; width: 100%; flex: none; }
@@ -86,12 +86,12 @@
 <div class="panel">
     <div class="header">
         <img src="logo.png" alt="Syntro">
-        <div>GPS INGENIERÍA</div>
+        <div>GPS INGENIERÍA - VENEZUELA</div>
     </div>
 
     <div class="content">
         <input type="file" id="inGeo" style="display:none" accept=".geojson" onchange="importar(event)">
-        <button class="btn-import" onclick="document.getElementById('inGeo').click()">📂 CARGAR MAPA BASE</button>
+        <button class="btn-import" onclick="document.getElementById('inGeo').click()">📂 CARGAR MAPA BASE (GEOJSON)</button>
 
         <div class="dashboard">
             <div class="data-card"><label>Hectáreas</label><span id="res-ha">0.0000</span></div>
@@ -106,7 +106,14 @@
         <div class="table-container">
             <table>
                 <thead>
-                    <tr><th>VRT</th><th>X (ESTE)</th><th>Y (NORTE)</th><th>DIST(m)</th><th>ACC</th></tr>
+                    <tr>
+                        <th>VRT</th>
+                        <th>TIPO</th>
+                        <th>ESTE (X)</th>
+                        <th>NORTE (Y)</th>
+                        <th>OBSERVACIÓN</th>
+                        <th>ACC</th>
+                    </tr>
                 </thead>
                 <tbody id="tabla-atributos"></tbody>
             </table>
@@ -114,16 +121,16 @@
     </div>
 
     <div class="footer-fixed">
-        <button class="btn btn-dl" onclick="exportCSV()">CSV</button>
+        <button class="btn btn-dl" onclick="exportCSV()">DESCARGAR CSV</button>
         <button class="btn btn-dl" onclick="exportGeo()">GEOJSON</button>
-        <button class="btn" style="background:#f2dede; color:red;" onclick="limpiar()">🗑️</button>
+        <button class="btn" style="background:#f2dede; color:red; border:1px solid #ebccd1;" onclick="limpiar()">🗑️</button>
     </div>
 </div>
 
 <script>
     const utm19N = "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs";
     const wgs84 = "EPSG:4326";
-    let vertices = JSON.parse(localStorage.getItem('syntro_v3')) || [];
+    let vertices = JSON.parse(localStorage.getItem('syntro_v5')) || [];
     let markers = [];
 
     const map = L.map('map', { zoomControl: false }).setView([10.64, -71.61], 15);
@@ -139,13 +146,19 @@
         navigator.geolocation.getCurrentPosition(p => {
             const { latitude: lat, longitude: lng } = p.coords;
             const utm = proj4(wgs84, utm19N, [lng, lat]);
-            vertices.push({ lat, lng, x: utm[0], y: utm[1], dist: 0 });
+            vertices.push({ 
+                lat, lng, 
+                x: utm[0], y: utm[1], 
+                dist: 0, 
+                tipo: 'Poligono', 
+                obs: '' 
+            });
             render();
         }, null, { enableHighAccuracy: true });
     }
 
     function render() {
-        localStorage.setItem('syntro_v3', JSON.stringify(vertices));
+        localStorage.setItem('syntro_v5', JSON.stringify(vertices));
         markers.forEach(m => map.removeLayer(m));
         markers = [];
         const tbody = document.getElementById('tabla-atributos');
@@ -153,16 +166,35 @@
         let pts = [], pm = 0;
 
         vertices.forEach((v, i) => {
-            if (pts.length > 0) {
-                v.dist = map.distance(pts[pts.length - 1], [v.lat, v.lng]);
-                pm += v.dist;
+            if (v.tipo === 'Poligono') {
+                if (pts.length > 0) {
+                    v.dist = map.distance(pts[pts.length - 1], [v.lat, v.lng]);
+                    pm += v.dist;
+                }
+                pts.push([v.lat, v.lng]);
             }
-            pts.push([v.lat, v.lng]);
             
-            const m = L.circleMarker([v.lat, v.lng], {radius: 5, color: '#184e77', fillOpacity: 1}).addTo(map);
+            const m = L.circleMarker([v.lat, v.lng], {
+                radius: v.tipo === 'Poligono' ? 5 : 7, 
+                color: v.tipo === 'Poligono' ? '#184e77' : '#e74c3c', 
+                fillOpacity: 1
+            }).addTo(map).bindPopup(`V${i+1}: ${v.obs}`);
             markers.push(m);
 
-            tbody.innerHTML += `<tr><td>V${i+1}</td><td>${v.x.toFixed(0)}</td><td>${v.y.toFixed(0)}</td><td>${v.dist.toFixed(1)}</td><td onclick="borrar(${i})">❌</td></tr>`;
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>V${i+1}</b></td>
+                    <td>
+                        <select class="select-table" onchange="updateRow(${i}, 'tipo', this.value)">
+                            <option value="Poligono" ${v.tipo === 'Poligono' ? 'selected' : ''}>Pol</option>
+                            <option value="Punto" ${v.tipo === 'Punto' ? 'selected' : ''}>Pto</option>
+                        </select>
+                    </td>
+                    <td>${v.x.toFixed(0)}</td>
+                    <td>${v.y.toFixed(0)}</td>
+                    <td><input class="input-table" type="text" value="${v.obs}" onchange="updateRow(${i}, 'obs', this.value)" placeholder="..."></td>
+                    <td onclick="borrar(${i})">❌</td>
+                </tr>`;
         });
 
         poly.setLatLngs(pts);
@@ -170,21 +202,35 @@
         if (pts.length > 2) {
             const area = turf.area(poly.toGeoJSON());
             document.getElementById('res-ha').innerText = (area / 10000).toFixed(4);
+        } else {
+            document.getElementById('res-ha').innerText = "0.0000";
         }
     }
 
+    function updateRow(i, field, val) {
+        vertices[i][field] = val;
+        render();
+    }
+
     function borrar(i) { vertices.splice(i, 1); render(); }
-    function limpiar() { if(confirm("¿Borrar datos?")) { vertices = []; render(); } }
+    function limpiar() { if(confirm("¿Borrar todos los datos?")) { vertices = []; render(); } }
 
     function exportCSV() {
-        let c = "VRT,X,Y,DIST\n";
-        vertices.forEach((v, i) => c += `V${i+1},${v.x.toFixed(2)},${v.y.toFixed(2)},${v.dist.toFixed(2)}\n`);
-        descargar(new Blob([c], {type:'text/csv'}), "Levantamiento.csv");
+        let c = "VRT,TIPO,X,Y,DISTANCIA,OBSERVACION\n";
+        vertices.forEach((v, i) => c += `V${i+1},${v.tipo},${v.x.toFixed(2)},${v.y.toFixed(2)},${v.dist.toFixed(2)},${v.obs}\n`);
+        descargar(new Blob([c], {type:'text/csv'}), "Syntro_Levantamiento.csv");
     }
 
     function exportGeo() {
-        if(vertices.length < 3) return alert("Mínimo 3 puntos");
-        descargar(new Blob([JSON.stringify(poly.toGeoJSON())], {type:'application/json'}), "Poligono.geojson");
+        const feat = vertices.map((v, i) => ({
+            type: "Feature",
+            properties: { id: i+1, obs: v.obs, tipo: v.tipo },
+            geometry: { type: "Point", coordinates: [v.lng, v.lat] }
+        }));
+        if(vertices.length >= 3) {
+            feat.push(poly.toGeoJSON());
+        }
+        descargar(new Blob([JSON.stringify({type: "FeatureCollection", features: feat})], {type:'application/json'}), "Syntro_Data.geojson");
     }
 
     function importar(e) {
