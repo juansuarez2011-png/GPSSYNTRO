@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Geo GPS Syntro Pro</title>
     
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" type="image/png" href="icono.png"> <link rel="apple-touch-icon" href="icono.png"> <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="GPSSyntro">
     
@@ -32,7 +32,7 @@
 
         #map { flex: 1; z-index: 1; height: 100%; transition: all 0.3s ease; }
 
-        /* Panel Principal con Flexbox para organizar el pie */
+        /* Panel Principal */
         .panel { 
             width: 480px; 
             background: white; 
@@ -42,17 +42,19 @@
             box-shadow: -2px 0 15px rgba(0,0,0,0.1); 
             border-left: 3px solid var(--s-blue); 
             transition: all 0.3s ease;
+            position: relative; /* Para el pie de descargas fijo */
         }
 
-        /* Encabezado Fijo */
+        /* Encabezado Fijo con LOGO RECTANGULAR */
         .header { 
             background: var(--s-navy); 
             color: white; 
-            padding: 12px; 
+            padding: 10px; 
             text-align: center; 
             border-bottom: 5px solid var(--s-lime);
             flex-shrink: 0;
         }
+        .header img { height: 38px; object-fit: contain; margin-bottom: 2px; }
 
         /* Área de contenido con scroll */
         .content { 
@@ -62,10 +64,10 @@
             display: flex; 
             flex-direction: column; 
             gap: 12px; 
-            padding-bottom: 80px; /* Espacio para el pie fijo */
+            padding-bottom: 80px; /* Espacio inferior para los botones fijos */
         }
 
-        /* Dashboard de datos 3D */
+        /* Dashboard de datos */
         .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .data-card { 
             background: #fff; border: 1px solid #e0e0e0; padding: 10px; 
@@ -85,7 +87,7 @@
         .btn-capture { background: var(--s-navy); color: white; flex: 2; }
         .btn-toggle { background: #f8f9fa; color: var(--s-navy); border: 1px solid var(--s-navy); flex: 1; }
 
-        /* Tabla Estilizada con scroll horizontal */
+        /* Tabla Estilizada */
         .table-container { 
             border: 1px solid #e0e0e0; border-radius: 10px; 
             overflow-x: auto; background: white; margin-top: 5px;
@@ -105,30 +107,23 @@
         }
         .v-marker.obj { background: #e67e22; }
 
-        /* PIE FIJO DE DESCARGAS (La solución al problema) */
+        /* PIE FIJO DE DESCARGAS (Botones siempre visibles) */
         .download-footer {
-            position: fixed;
+            position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
             height: 70px;
             background: rgba(255, 255, 255, 0.95);
             display: grid;
-            grid-template-columns: 1fr 1fr 60px; /* CSV, GEOJSON, BORRAR */
+            grid-template-columns: 1fr 1fr 60px;
             gap: 10px;
             padding: 10px 15px;
             box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
-            z-index: 1000; /* Por encima de todo */
-        }
-        .panel-download-footer {
-             position: absolute;
-             bottom: 0;
-             left: 0;
-             width: 100%;
-             grid-template-columns: 1fr 1fr 60px;
+            z-index: 1000;
         }
 
-        /* ADAPTACIÓN MÓVIL (Vertical) */
+        /* ADAPTACIÓN MÓVIL */
         @media (max-width: 850px) {
             body { flex-direction: column; }
             #map { height: 40vh; width: 100%; flex: none; }
@@ -138,7 +133,6 @@
             body.map-hidden .panel { height: 100vh; border-top: none; }
         }
 
-        /* Ajuste de los botones de descarga en el pie */
         .btn-download { background: white; border: 1px solid #dadce0; color: #5f6368; font-size: 0.7rem; min-height: 44px; }
         .btn-danger { background: #f2dede; color: #a94442; border: 1px solid #ebccd1; min-height: 44px; }
     </style>
@@ -149,8 +143,8 @@
 
 <div class="panel">
     <div class="header">
-        <div style="font-size: 0.8rem; letter-spacing: 2px; font-weight: 800; color: #fff;">SYNTRO GPS PRO</div>
-        <div style="font-size: 0.6rem; letter-spacing: 1.5px; font-weight: 300; margin-top:3px;">GPS INGENIERÍA</div>
+        <img src="logo.png" alt="Syntro Academy">
+        <div style="font-size: 0.6rem; letter-spacing: 1.5px; font-weight: 300; text-transform: uppercase;">GPS INGENIERÍA</div>
     </div>
 
     <div class="content">
@@ -188,7 +182,7 @@
         
     </div>
     
-    <div class="download-footer panel-download-footer">
+    <div class="download-footer">
         <button class="btn btn-download" onclick="exportarCSV()">CSV</button>
         <button class="btn btn-download" onclick="exportarPoligonoGeoJSON()">GEOJSON</button>
         <button class="btn btn-danger" onclick="limpiarTodo()" title="Borrar caché de la app">🗑️</button>
@@ -202,7 +196,7 @@
     let verticesData = JSON.parse(localStorage.getItem('syntro_gps_data')) || []; 
     let marcadoresCapas = [];
 
-    // Inicializar Mapa centrado en Maracaibo
+    // Inicializar Mapa
     const map = L.map('map', { tap: false, zoomControl: false }).setView([10.6447, -71.6106], 15);
     L.control.zoom({ position: 'topleft' }).addTo(map);
     
@@ -329,7 +323,8 @@
     function exportarPoligonoGeoJSON() {
         if (puntosPoligono.length < 3) return alert("Se requieren al menos 3 puntos de tipo Polígono.");
         const data = poligonoLevantamiento.toGeoJSON();
-        descargar(new Blob([JSON.stringify(data)], {type: 'application/json'}), "Poligono_Syntro.geojson");
+        const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Poligono_Syntro.geojson"; a.click();
     }
 
     function importarMapaBase(e) {
