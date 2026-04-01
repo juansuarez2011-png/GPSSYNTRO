@@ -19,12 +19,12 @@
         #map-container { flex: 1; height: 100vh; position: relative; transition: all 0.3s ease; border-right: 2px solid #ccc; display: block; }
         #map { height: 100%; width: 100%; background: #222; }
 
-        /* ESTADO OCULTO - REFORZADO */
+        /* ESTADO OCULTO */
         #map-container.map-hidden { display: none !important; }
 
         /* Panel Lateral */
         .panel { width: 600px; background: var(--bg); display: flex; flex-direction: column; height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; transition: all 0.3s ease; }
-        .panel.panel-full { width: 100% !important; } /* Ocupa todo cuando el mapa se oculta */
+        .panel.panel-full { width: 100% !important; }
         
         .header { 
             background: var(--s-navy); color: white; padding: 12px 15px; 
@@ -48,20 +48,19 @@
         .stat-card small { font-size: 0.7rem; color: #666; display: block; text-transform: uppercase; }
         .stat-card b { font-size: 1.2rem; color: var(--s-navy); }
 
-        /* TABLA ANCHA Y LEGIBLE */
+        /* TABLA AJUSTADA */
         .table-wrap { flex: 1; overflow-x: auto; overflow-y: auto; margin: 0 15px 15px 15px; background: white; border-radius: 15px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 600px; }
         th { background: #f8f9fa; padding: 15px 10px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--s-lime); color: var(--s-navy); }
         td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #eee; }
         
         .coord-val { font-family: 'Courier New', monospace; font-weight: bold; color: #c0392b; }
-        .tipo-select { padding: 5px; border-radius: 5px; font-weight: bold; color: var(--s-navy); border: 1px solid #ccc; }
+        .tipo-select { padding: 5px; border-radius: 5px; font-weight: bold; color: var(--s-navy); border: 1px solid #ccc; background: white; }
 
         @media (max-width: 850px) {
             body { flex-direction: column; }
             #map-container { height: 40vh; width: 100%; border-right: none; border-bottom: 2px solid #ccc; }
             .panel { width: 100%; height: 60vh; }
-            #map-container.map-hidden { display: none !important; }
             .panel.panel-full { height: 100vh !important; }
         }
     </style>
@@ -79,7 +78,7 @@
     
     <div class="toolbar">
         <button id="mainBtn" class="btn-gps" onclick="capturar()">📍 CAPTURAR VÉRTICE</button>
-        <button class="action" onclick="exportGeo()">📥 GEOJSON</button>
+        <button class="action" onclick="exportGeoJSON()">📥 GEOJSON (POL)</button>
         <button class="action" onclick="exportCSV()">📥 EXCEL (CSV)</button>
         <button style="color:#e74c3c; grid-column: span 2; font-size: 0.85rem; background: none; border: none; margin-top: 5px; cursor:pointer; font-weight:bold;" onclick="limpiar()">🗑️ BORRAR TODO</button>
     </div>
@@ -121,12 +120,9 @@
     function toggleVista() {
         const mapCont = document.getElementById('map-container');
         const panel = document.getElementById('main-panel');
-        
         mapCont.classList.toggle('map-hidden');
         panel.classList.toggle('panel-full');
-        
-        // Refrescar mapa si se vuelve a mostrar
-        setTimeout(() => map.invalidateSize(), 350);
+        setTimeout(() => map.invalidateSize(), 400);
     }
 
     function getUTMData(lat, lng) {
@@ -138,7 +134,7 @@
 
     function capturar() {
         const btn = document.getElementById('mainBtn');
-        btn.innerText = "🛰️ BUSCANDO SEÑAL...";
+        btn.innerText = "🛰️ BUSCANDO GPS...";
         navigator.geolocation.getCurrentPosition(pos => {
             const { latitude: lat, longitude: lng } = pos.coords;
             const utm = getUTMData(lat, lng);
@@ -147,7 +143,7 @@
             actualizar();
             map.setView([lat, lng], 19);
         }, err => {
-            alert("Error de GPS: Asegúrate de estar a cielo abierto.");
+            alert("Error de GPS.");
             btn.innerText = "📍 CAPTURAR VÉRTICE";
         }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
     }
@@ -169,7 +165,10 @@
                 totalP += p.dist;
                 lastX = p.x; lastY = p.y;
                 ptsPol.push([p.lat, p.lng]);
+            } else {
+                p.dist = 0;
             }
+
             const color = p.tipo === 'POL' ? '#184e77' : '#e67e22';
             const m = L.circleMarker([p.lat, p.lng], { radius: 7, color: 'white', weight: 2, fillColor: color, fillOpacity: 1 }).addTo(map);
             marcadores.push(m);
@@ -186,7 +185,7 @@
                 <td class="coord-val">${p.x.toFixed(2)}</td>
                 <td class="coord-val">${p.y.toFixed(2)}</td>
                 <td style="color:blue; font-weight:bold">${p.dist.toFixed(2)}</td>
-                <td><input type="text" value="${p.obs}" onchange="cambiarObs(${i}, this.value)" style="width:100%; padding:5px;"></td>
+                <td><input type="text" value="${p.obs}" onchange="cambiarObs(${i}, this.value)" style="width:100%; border:1px solid #ccc; padding:4px;"></td>
                 <td onclick="borrar(${i})" style="color:red; cursor:pointer; font-weight:bold;">×</td>
             </tr>`;
         });
@@ -194,6 +193,7 @@
         capaPol.setLatLngs(ptsPol);
         perimetroMetros = totalP;
         document.getElementById('perim-val').innerText = perimetroMetros.toFixed(2);
+        
         if(ptsPol.length > 2) {
             const area = turf.area(capaPol.toGeoJSON());
             areaHectareas = area / 10000;
@@ -208,31 +208,48 @@
     function borrar(i) { if(confirm("¿Eliminar?")) { datos.splice(i,1); actualizar(); } }
     function limpiar() { if(confirm("¿Borrar todo?")) { datos = []; actualizar(); } }
 
-    function exportGeo() {
-        if(datos.length === 0) return;
+    // FUNCIONES DE EXPORTACIÓN REPARADAS
+    function exportGeoJSON() {
+        if(datos.length === 0) { alert("No hay datos para exportar"); return; }
+        
         const features = datos.map((p, i) => ({
             type: "Feature",
             geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-            properties: { ID: i+1, TIPO: p.tipo, X: p.x, Y: p.y, OBS: p.obs }
+            properties: { id: i+1, tipo: p.tipo, este_x: p.x, norte_y: p.y, observacion: p.obs }
         }));
-        const polPts = datos.filter(p => p.tipo === 'POL').map(p => [p.lng, p.lat]);
-        if(polPts.length > 2) {
-            polPts.push(polPts[0]);
+
+        const polCoords = datos.filter(p => p.tipo === 'POL').map(p => [p.lng, p.lat]);
+        if(polCoords.length > 2) {
+            polCoords.push(polCoords[0]); // Cerrar anillo
             features.push({
                 type: "Feature",
-                geometry: { type: "Polygon", coordinates: [polPts] },
-                properties: { AREA_HA: areaHectareas.toFixed(4), PERIM_M: perimetroMetros.toFixed(2) }
+                geometry: { type: "Polygon", coordinates: [polCoords] },
+                properties: { area_ha: areaHectareas.toFixed(4), perim_m: perimetroMetros.toFixed(2), nombre: "LEVANTAMIENTO_POLIGONAL" }
             });
         }
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ type: "FeatureCollection", features })], {type: 'application/json'}));
-        a.download = `SYN_LEV_${Date.now()}.geojson`; a.click();
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ type: "FeatureCollection", features: features }));
+        const dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", `SYN_DATA_${Date.now()}.geojson`);
+        dlAnchorElem.click();
     }
 
     function exportCSV() {
-        let csv = "ID,TIPO,X_ESTE,Y_NORTE,DIST,OBS\n";
-        datos.forEach((p, i) => { csv += `${i+1},${p.tipo},${p.x},${p.y},${p.dist},"${p.obs}"\n`; });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
-        a.download = `SYN_LEV_${Date.now()}.csv`; a.click();
+        if(datos.length === 0) { alert("No hay datos para exportar"); return; }
+        
+        let csvContent = "data:text/csv;charset=utf-8,ID,TIPO,ESTE_X,NORTE_Y,DISTANCIA,OBSERVACION\n";
+        datos.forEach((p, i) => {
+            csvContent += `${i+1},${p.tipo},${p.x.toFixed(3)},${p.y.toFixed(3)},${p.dist.toFixed(2)},"${p.obs}"\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `SYN_REPORTE_${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     actualizar();
