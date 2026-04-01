@@ -15,51 +15,36 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); }
         
-        /* Contenedor del Mapa */
         #map-container { flex: 1; height: 100vh; position: relative; transition: all 0.3s ease; border-right: 2px solid #ccc; display: block; }
         #map { height: 100%; width: 100%; background: #222; }
-
-        /* ESTADO OCULTO */
         #map-container.map-hidden { display: none !important; }
 
-        /* Panel Lateral */
         .panel { width: 600px; background: var(--bg); display: flex; flex-direction: column; height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; transition: all 0.3s ease; }
         .panel.panel-full { width: 100% !important; }
         
-        .header { 
-            background: var(--s-navy); color: white; padding: 12px 15px; 
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 4px solid var(--s-lime); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .header img { height: 40px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); }
+        .header { background: var(--s-navy); color: white; padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid var(--s-lime); }
+        .header img { height: 40px; }
 
         .toolbar { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn-gps { 
-            grid-column: span 2; background: var(--s-navy); color: white; height: 70px; 
-            border: none; font-size: 1.2rem; font-weight: bold; border-radius: 15px; cursor: pointer; 
-            box-shadow: 0 6px 0 #0d2b42, 0 12px 20px rgba(0,0,0,0.2); transition: 0.1s;
-        }
+        .btn-gps { grid-column: span 2; background: var(--s-navy); color: white; height: 70px; border: none; font-size: 1.2rem; font-weight: bold; border-radius: 15px; cursor: pointer; box-shadow: 0 6px 0 #0d2b42; }
         .btn-gps:active { transform: translateY(3px); box-shadow: 0 2px 0 #0d2b42; }
         
-        button.action { padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-weight: bold; background: white; color: var(--s-navy); cursor: pointer; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+        button.action { padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-weight: bold; background: white; color: var(--s-navy); cursor: pointer; }
 
         .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 15px; margin-bottom: 15px; }
-        .stat-card { background: white; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #ddd; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05); }
-        .stat-card small { font-size: 0.7rem; color: #666; display: block; text-transform: uppercase; }
-        .stat-card b { font-size: 1.2rem; color: var(--s-navy); }
+        .stat-card { background: white; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #ddd; }
+        .stat-card small { font-size: 0.7rem; color: #666; display: block; }
+        .stat-card b { font-size: 1.1rem; color: var(--s-navy); }
 
-        /* TABLA AJUSTADA */
-        .table-wrap { flex: 1; overflow-x: auto; overflow-y: auto; margin: 0 15px 15px 15px; background: white; border-radius: 15px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 600px; }
-        th { background: #f8f9fa; padding: 15px 10px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid var(--s-lime); color: var(--s-navy); }
-        td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #eee; }
-        
-        .coord-val { font-family: 'Courier New', monospace; font-weight: bold; color: #c0392b; }
-        .tipo-select { padding: 5px; border-radius: 5px; font-weight: bold; color: var(--s-navy); border: 1px solid #ccc; background: white; }
+        .table-wrap { flex: 1; overflow: auto; margin: 0 15px 15px 15px; background: white; border-radius: 15px; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th { background: #f8f9fa; padding: 12px; position: sticky; top: 0; border-bottom: 2px solid var(--s-lime); }
+        td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
+        .coord-val { font-family: monospace; font-weight: bold; color: #c0392b; }
 
         @media (max-width: 850px) {
             body { flex-direction: column; }
-            #map-container { height: 40vh; width: 100%; border-right: none; border-bottom: 2px solid #ccc; }
+            #map-container { height: 40vh; width: 100%; border-right: none; }
             .panel { width: 100%; height: 60vh; }
             .panel.panel-full { height: 100vh !important; }
         }
@@ -73,14 +58,14 @@
     <div class="header">
         <img src="logo.png" alt="Syntro">
         <span style="font-weight: bold;">V12.7 PRO</span>
-        <button class="action" onclick="toggleVista()" style="background:var(--s-lime); border:none; padding:8px 15px; border-radius:10px; color:var(--s-navy); font-weight:bold;">🗺️ MAPA ON/OFF</button>
+        <button class="action" onclick="toggleVista()" style="background:var(--s-lime); border:none; padding:8px 15px; border-radius:10px; font-weight:bold;">🗺️ MAPA ON/OFF</button>
     </div>
     
     <div class="toolbar">
         <button id="mainBtn" class="btn-gps" onclick="capturar()">📍 CAPTURAR VÉRTICE</button>
-        <button class="action" onclick="exportGeoJSON()">📥 GEOJSON (POL)</button>
+        <button class="action" onclick="exportGeoJSON()">📥 GEOJSON</button>
         <button class="action" onclick="exportCSV()">📥 EXCEL (CSV)</button>
-        <button style="color:#e74c3c; grid-column: span 2; font-size: 0.85rem; background: none; border: none; margin-top: 5px; cursor:pointer; font-weight:bold;" onclick="limpiar()">🗑️ BORRAR TODO</button>
+        <button style="color:#e74c3c; grid-column: span 2; font-size: 0.85rem; background: none; border: none; cursor:pointer; font-weight:bold;" onclick="limpiar()">🗑️ BORRAR TODO</button>
     </div>
 
     <div class="stats">
@@ -98,8 +83,8 @@
                     <th>ESTE (X)</th>
                     <th>NORTE (Y)</th>
                     <th>DIST (m)</th>
-                    <th>OBSERVACIÓN</th>
-                    <th>ELIM</th>
+                    <th>OBS</th>
+                    <th>DEL</th>
                 </tr>
             </thead>
             <tbody id="body-tabla"></tbody>
@@ -118,10 +103,8 @@
     const capaPol = L.polygon([], {color: '#d9ed92', weight: 4, fillOpacity: 0.3}).addTo(map);
 
     function toggleVista() {
-        const mapCont = document.getElementById('map-container');
-        const panel = document.getElementById('main-panel');
-        mapCont.classList.toggle('map-hidden');
-        panel.classList.toggle('panel-full');
+        document.getElementById('map-container').classList.toggle('map-hidden');
+        document.getElementById('main-panel').classList.toggle('panel-full');
         setTimeout(() => map.invalidateSize(), 400);
     }
 
@@ -142,10 +125,8 @@
             btn.innerText = "📍 CAPTURAR VÉRTICE";
             actualizar();
             map.setView([lat, lng], 19);
-        }, err => {
-            alert("Error de GPS.");
-            btn.innerText = "📍 CAPTURAR VÉRTICE";
-        }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+        }, err => { alert("Error GPS"); btn.innerText = "📍 CAPTURAR VÉRTICE"; }, 
+        { enableHighAccuracy: true, timeout: 15000 });
     }
 
     function actualizar() {
@@ -162,94 +143,67 @@
         datos.forEach((p, i) => {
             if(p.tipo === 'POL') {
                 if(lastX !== null) p.dist = Math.sqrt(Math.pow(p.x - lastX, 2) + Math.pow(p.y - lastY, 2));
-                totalP += p.dist;
-                lastX = p.x; lastY = p.y;
+                totalP += p.dist; lastX = p.x; lastY = p.y;
                 ptsPol.push([p.lat, p.lng]);
-            } else {
-                p.dist = 0;
             }
-
             const color = p.tipo === 'POL' ? '#184e77' : '#e67e22';
-            const m = L.circleMarker([p.lat, p.lng], { radius: 7, color: 'white', weight: 2, fillColor: color, fillOpacity: 1 }).addTo(map);
-            marcadores.push(m);
-            if(i === 0) document.getElementById('utm-zona').innerText = p.zone + "N";
-
+            marcadores.push(L.circleMarker([p.lat, p.lng], { radius: 6, color: 'white', fillColor: color, fillOpacity: 1 }).addTo(map));
+            
             tbody.innerHTML += `<tr>
-                <td><b>${i+1}</b></td>
-                <td>
-                    <select class="tipo-select" onchange="cambiarTipo(${i}, this.value)">
-                        <option value="POL" ${p.tipo==='POL'?'selected':''}>POL</option>
-                        <option value="PTS" ${p.tipo==='PTS'?'selected':''}>PTS</option>
-                    </select>
-                </td>
-                <td class="coord-val">${p.x.toFixed(2)}</td>
-                <td class="coord-val">${p.y.toFixed(2)}</td>
-                <td style="color:blue; font-weight:bold">${p.dist.toFixed(2)}</td>
-                <td><input type="text" value="${p.obs}" onchange="cambiarObs(${i}, this.value)" style="width:100%; border:1px solid #ccc; padding:4px;"></td>
-                <td onclick="borrar(${i})" style="color:red; cursor:pointer; font-weight:bold;">×</td>
+                <td>${i+1}</td>
+                <td><select onchange="cambiarTipo(${i}, this.value)"><option value="POL" ${p.tipo==='POL'?'selected':''}>POL</option><option value="PTS" ${p.tipo==='PTS'?'selected':''}>PTS</option></select></td>
+                <td class="coord-val">${p.x.toFixed(2)}</td><td class="coord-val">${p.y.toFixed(2)}</td>
+                <td>${p.dist.toFixed(2)}</td>
+                <td><input type="text" value="${p.obs}" onchange="cambiarObs(${i}, this.value)" style="width:80px"></td>
+                <td onclick="borrar(${i})" style="color:red; cursor:pointer">×</td>
             </tr>`;
         });
 
         capaPol.setLatLngs(ptsPol);
-        perimetroMetros = totalP;
-        document.getElementById('perim-val').innerText = perimetroMetros.toFixed(2);
-        
+        document.getElementById('perim-val').innerText = totalP.toFixed(2);
+        document.getElementById('utm-zona').innerText = datos.length ? datos[0].zone + "N" : "-";
         if(ptsPol.length > 2) {
-            const area = turf.area(capaPol.toGeoJSON());
-            areaHectareas = area / 10000;
+            areaHectareas = turf.area(capaPol.toGeoJSON()) / 10000;
             document.getElementById('area-val').innerText = areaHectareas.toFixed(4);
-        } else {
-            document.getElementById('area-val').innerText = "0.0000";
         }
     }
 
     function cambiarTipo(i, v) { datos[i].tipo = v; actualizar(); }
     function cambiarObs(i, v) { datos[i].obs = v; localStorage.setItem('syntro_v12_7', JSON.stringify(datos)); }
-    function borrar(i) { if(confirm("¿Eliminar?")) { datos.splice(i,1); actualizar(); } }
-    function limpiar() { if(confirm("¿Borrar todo?")) { datos = []; actualizar(); } }
+    function borrar(i) { datos.splice(i,1); actualizar(); }
+    function limpiar() { if(confirm("¿Borrar?")) { datos = []; actualizar(); } }
 
-    // FUNCIONES DE EXPORTACIÓN REPARADAS
+    // EXPORTACIONES REPARADAS CON BLOB
     function exportGeoJSON() {
-        if(datos.length === 0) { alert("No hay datos para exportar"); return; }
-        
-        const features = datos.map((p, i) => ({
-            type: "Feature",
-            geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-            properties: { id: i+1, tipo: p.tipo, este_x: p.x, norte_y: p.y, observacion: p.obs }
+        if(!datos.length) return;
+        const feat = datos.map((p, i) => ({
+            type: "Feature", geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+            properties: { id: i+1, tipo: p.tipo, x: p.x, y: p.y, obs: p.obs }
         }));
-
-        const polCoords = datos.filter(p => p.tipo === 'POL').map(p => [p.lng, p.lat]);
-        if(polCoords.length > 2) {
-            polCoords.push(polCoords[0]); // Cerrar anillo
-            features.push({
-                type: "Feature",
-                geometry: { type: "Polygon", coordinates: [polCoords] },
-                properties: { area_ha: areaHectareas.toFixed(4), perim_m: perimetroMetros.toFixed(2), nombre: "LEVANTAMIENTO_POLIGONAL" }
-            });
+        const pol = datos.filter(p => p.tipo === 'POL').map(p => [p.lng, p.lat]);
+        if(pol.length > 2) {
+            pol.push(pol[0]);
+            feat.push({ type: "Feature", geometry: { type: "Polygon", coordinates: [pol] }, properties: { area: areaHectareas } });
         }
-
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ type: "FeatureCollection", features: features }));
-        const dlAnchorElem = document.createElement('a');
-        dlAnchorElem.setAttribute("href", dataStr);
-        dlAnchorElem.setAttribute("download", `SYN_DATA_${Date.now()}.geojson`);
-        dlAnchorElem.click();
+        descargar(JSON.stringify({ type: "FeatureCollection", features: feat }), `SYN_${Date.now()}.geojson`, "application/json");
     }
 
     function exportCSV() {
-        if(datos.length === 0) { alert("No hay datos para exportar"); return; }
-        
-        let csvContent = "data:text/csv;charset=utf-8,ID,TIPO,ESTE_X,NORTE_Y,DISTANCIA,OBSERVACION\n";
-        datos.forEach((p, i) => {
-            csvContent += `${i+1},${p.tipo},${p.x.toFixed(3)},${p.y.toFixed(3)},${p.dist.toFixed(2)},"${p.obs}"\n`;
-        });
+        if(!datos.length) return;
+        let csv = "ID,TIPO,X,Y,DIST,OBS\n";
+        datos.forEach((p, i) => csv += `${i+1},${p.tipo},${p.x},${p.y},${p.dist},"${p.obs}"\n`);
+        descargar(csv, `SYN_${Date.now()}.csv`, "text/csv");
+    }
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `SYN_REPORTE_${Date.now()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    function descargar(contenido, nombre, tipo) {
+        const blob = new Blob([contenido], { type: tipo });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = nombre;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     actualizar();
