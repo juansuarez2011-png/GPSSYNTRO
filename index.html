@@ -5,242 +5,154 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Geo GPS Syntro Pro</title>
     
-    <link rel="icon" type="image/png" href="icono.png?v=2">
-    <link rel="shortcut icon" href="icono.png?v=2">
-    <link rel="apple-touch-icon" href="icono.png?v=2">
-    
+    <link rel="icon" type="image/png" href="icono.png?v=3">
+    <link rel="apple-touch-icon" href="icono.png?v=3">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#184e77">
-    
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     
     <style>
-        :root { 
-            --s-navy: #184e77; --s-lime: #d9ed92; --s-blue: #1e6091; --bg: #f4f7f6;
-        }
-
+        :root { --s-navy: #184e77; --s-lime: #d9ed92; --s-blue: #1e6091; --bg: #f4f7f6; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; flex-direction: row; background: var(--bg); overflow: hidden; }
         
-        body { 
-            font-family: -apple-system, system-ui, sans-serif; 
-            margin: 0; display: flex; height: 100vh; flex-direction: row; 
-            background: var(--bg); overflow: hidden; 
-        }
-
-        #map { flex: 1; z-index: 1; height: 100%; transition: all 0.3s ease; }
+        #map { flex: 1; height: 100%; }
 
         .panel { 
-            width: 480px; background: white; z-index: 10; display: flex; 
-            flex-direction: column; box-shadow: -2px 0 15px rgba(0,0,0,0.1); 
-            border-left: 3px solid var(--s-blue); transition: all 0.3s ease;
-            position: relative;
+            width: 400px; background: white; display: flex; flex-direction: column; 
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1); border-left: 3px solid var(--s-blue);
+            position: relative; height: 100vh;
         }
 
-        /* Encabezado con Logo Rectangular */
-        .header { 
-            background: var(--s-navy); color: white; padding: 10px; 
-            text-align: center; border-bottom: 5px solid var(--s-lime); flex-shrink: 0;
-        }
-        .header img { height: 40px; object-fit: contain; }
+        .header { background: var(--s-navy); color: white; padding: 8px; text-align: center; border-bottom: 4px solid var(--s-lime); }
+        .header img { height: 35px; }
 
+        /* Contenedor de scroll limitado para que no empuje los botones */
         .content { 
-            padding: 15px; flex: 1; overflow-y: auto; display: flex; 
-            flex-direction: column; gap: 12px; padding-bottom: 85px; 
+            flex: 1; overflow-y: auto; padding: 12px; 
+            display: flex; flex-direction: column; gap: 10px;
+            margin-bottom: 75px; /* Espacio obligatorio para los botones */
         }
 
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .data-card { 
-            background: #fff; border: 1px solid #e0e0e0; padding: 10px; 
-            border-radius: 10px; text-align: center; border-left: 4px solid var(--s-blue); 
-        }
-        .data-card label { font-size: 0.6rem; font-weight: bold; color: #7f8c8d; text-transform: uppercase; display: block; }
-        .data-card span { font-size: 1.1rem; font-weight: 700; color: var(--s-navy); }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .data-card { background: #fff; border: 1px solid #ddd; padding: 8px; border-radius: 8px; text-align: center; border-left: 4px solid var(--s-blue); }
+        .data-card label { font-size: 0.6rem; color: #7f8c8d; display: block; }
+        .data-card span { font-size: 1rem; font-weight: bold; color: var(--s-navy); }
 
-        .btn { 
-            min-height: 48px; padding: 10px; border: none; border-radius: 8px; 
-            font-weight: bold; text-transform: uppercase; font-size: 0.75rem; 
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; 
-        }
-        .btn-capture { background: var(--s-navy); color: white; flex: 2; }
-        .btn-toggle { background: #f8f9fa; color: var(--s-navy); border: 1px solid var(--s-navy); flex: 1; }
+        .btn { min-height: 44px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; cursor: pointer; border: none; text-transform: uppercase; }
+        .btn-capture { background: var(--s-navy); color: white; width: 100%; margin-bottom: 5px; }
+        
+        .table-container { border: 1px solid #eee; border-radius: 8px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.65rem; min-width: 400px; }
+        th { background: #f8f9fa; padding: 10px; border-bottom: 1px solid #ddd; }
+        td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
 
-        .table-container { 
-            border: 1px solid #e0e0e0; border-radius: 10px; 
-            overflow-x: auto; background: white; 
-        }
-        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; min-width: 480px; }
-        th { background: #f8f9fa; padding: 12px 8px; color: #7f8c8d; border-bottom: 2px solid #ddd; }
-        td { padding: 10px 5px; text-align: center; border-bottom: 1px solid #f1f3f4; }
-
-        .select-tipo { border: 1px solid var(--s-blue); border-radius: 4px; font-size: 0.65rem; }
-        .input-obs { width: 95%; border: 1px solid #ccc; border-radius: 4px; padding: 4px; font-size: 0.65rem; }
-
-        .v-marker { 
-            background: var(--s-navy); color: white; border-radius: 50%; 
-            width: 24px; height: 24px; display: flex; align-items: center; 
-            justify-content: center; font-size: 10px; font-weight: bold; border: 2px solid white; 
-        }
-
-        /* Botones Inferiores Fijos */
-        .download-footer {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 75px;
-            background: white; display: grid; grid-template-columns: 1fr 1fr 60px;
-            gap: 10px; padding: 10px 15px; border-top: 1px solid #eee; z-index: 1000;
+        /* PIE DE PÁGINA FIJO (NUNCA SE MUEVE) */
+        .footer-fixed {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 70px;
+            background: #fff; border-top: 2px solid var(--s-lime);
+            display: grid; grid-template-columns: 1fr 1fr 50px; gap: 8px; padding: 10px;
+            z-index: 2000;
         }
 
         @media (max-width: 850px) {
             body { flex-direction: column; }
-            #map { height: 40vh; width: 100%; flex: none; }
-            .panel { width: 100%; height: 60vh; border-left: none; border-top: 3px solid var(--s-blue); flex: 1; }
-            body.map-hidden #map { height: 0; }
-            body.map-hidden .panel { height: 100vh; }
+            #map { height: 40%; width: 100%; }
+            .panel { width: 100%; height: 60%; border-left: none; }
         }
     </style>
 </head>
-<body id="main-body">
+<body>
 
 <div id="map"></div>
 
 <div class="panel">
     <div class="header">
-        <img src="logo.png" alt="Syntro Academy">
-        <div style="font-size: 0.6rem; letter-spacing: 1.5px; font-weight: 300;">GPS INGENIERÍA</div>
+        <img src="logo.png" alt="Syntro">
+        <div style="font-size: 0.5rem; letter-spacing: 1px;">GPS INGENIERÍA</div>
     </div>
 
     <div class="content">
         <div class="dashboard">
-            <div class="data-card"><label>Hectáreas</label><span id="res-ha">0.0000</span></div>
-            <div class="data-card"><label>Perímetro (m)</label><span id="res-pm">0.00</span></div>
+            <div class="data-card"><label>HECTÁREAS</label><span id="res-ha">0.0000</span></div>
+            <div class="data-card"><label>PERÍMETRO (M)</label><span id="res-pm">0.00</span></div>
         </div>
 
-        <div style="display:flex; gap:8px;">
-            <button class="btn btn-capture" onclick="capturarVértice()">📍 FIJAR PUNTO GPS</button>
-            <button class="btn btn-toggle" onclick="toggleMapa()">🎬 MAPA</button>
-        </div>
+        <button class="btn btn-capture" onclick="capturarVértice()">📍 FIJAR VÉRTICE ACTUAL</button>
 
         <div class="table-container">
             <table>
                 <thead>
-                    <tr>
-                        <th>VRT</th>
-                        <th>TIPO</th>
-                        <th>ESTE (X)</th>
-                        <th>NORTE (Y)</th>
-                        <th>DIST(m)</th>
-                        <th>OBS</th>
-                        <th>ACC</th>
-                    </tr>
+                    <tr><th>VRT</th><th>X (ESTE)</th><th>Y (NORTE)</th><th>DIST(m)</th><th>ACC</th></tr>
                 </thead>
                 <tbody id="tabla-atributos"></tbody>
             </table>
         </div>
     </div>
-    
-    <div class="download-footer">
-        <button class="btn" style="background:#f8f9fa; border:1px solid #ccc;" onclick="exportarCSV()">CSV</button>
-        <button class="btn" style="background:#f8f9fa; border:1px solid #ccc;" onclick="exportarGeoJSON()">GEOJSON</button>
-        <button class="btn" style="background:#f2dede; color:#a94442;" onclick="limpiarCache()">🗑️</button>
+
+    <div class="footer-fixed">
+        <button class="btn" style="background:#eee;" onclick="exportarCSV()">CSV</button>
+        <button class="btn" style="background:#eee;" onclick="exportarGeoJSON()">GEOJSON</button>
+        <button class="btn" style="background:#f2dede; color:red;" onclick="limpiarTodo()">🗑️</button>
     </div>
 </div>
 
 <script>
     const utm19N = "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs";
     const wgs84 = "EPSG:4326";
-    let verticesData = JSON.parse(localStorage.getItem('syntro_gps_data')) || []; 
-    let marcadoresCapas = [];
+    let verticesData = JSON.parse(localStorage.getItem('syntro_data')) || [];
 
-    const map = L.map('map', { tap: false, zoomControl: false }).setView([10.6447, -71.6106], 15);
-    L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
-    
-    let poligonoLevantamiento = L.polygon([], {color: '#d9ed92', weight: 3, fillOpacity: 0.4}).addTo(map);
-
-    function toggleMapa() {
-        document.getElementById('main-body').classList.toggle('map-hidden');
-        setTimeout(() => { map.invalidateSize(); }, 400);
-    }
-
-    map.on('click', e => agregarPunto(e.latlng.lat, e.latlng.lng));
+    const map = L.map('map', { zoomControl: false }).setView([10.64, -71.61], 15);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3']}).addTo(map);
+    let poly = L.polygon([], {color: '#d9ed92', weight: 3}).addTo(map);
 
     function capturarVértice() {
-        navigator.geolocation.getCurrentPosition(pos => {
-            const { latitude: lat, longitude: lng } = pos.coords;
-            map.setView([lat, lng], 19);
-            agregarPunto(lat, lng);
-        }, err => alert("Error de GPS"), { enableHighAccuracy: true });
+        navigator.geolocation.getCurrentPosition(p => {
+            const { latitude: lat, longitude: lng } = p.coords;
+            const utm = proj4(wgs84, utm19N, [lng, lat]);
+            verticesData.push({ lat, lng, x: utm[0], y: utm[1], dist: 0 });
+            actualizar();
+        }, null, { enableHighAccuracy: true });
     }
 
-    function agregarPunto(lat, lng) {
-        const utm = proj4(wgs84, utm19N, [lng, lat]);
-        verticesData.push({ id: Date.now(), lat, lng, x: utm[0], y: utm[1], dist: 0, tipo: 'poligono', obs: '' });
-        actualizarPantalla();
-    }
-
-    function actualizarPantalla() {
-        localStorage.setItem('syntro_gps_data', JSON.stringify(verticesData));
-        marcadoresCapas.forEach(m => map.removeLayer(m));
-        marcadoresCapas = [];
+    function actualizar() {
+        localStorage.setItem('syntro_data', JSON.stringify(verticesData));
         const tbody = document.getElementById('tabla-atributos');
         tbody.innerHTML = "";
-        let perimetro = 0, puntosPol = [];
+        let pts = [], pm = 0;
 
         verticesData.forEach((v, i) => {
-            if (v.tipo === 'poligono') {
-                if (puntosPol.length > 0) {
-                    const prev = puntosPol[puntosPol.length - 1];
-                    v.dist = map.distance(prev, [v.lat, v.lng]);
-                    perimetro += v.dist;
-                }
-                puntosPol.push([v.lat, v.lng]);
+            if (pts.length > 0) {
+                v.dist = map.distance(pts[pts.length - 1], [v.lat, v.lng]);
+                pm += v.dist;
             }
-            
-            const m = L.marker([v.lat, v.lng], {
-                icon: L.divIcon({ className: 'v-marker', html: `V${i+1}` })
-            }).addTo(map);
-            marcadoresCapas.push(m);
-
-            tbody.innerHTML += `
-                <tr>
-                    <td><b>V${i+1}</b></td>
-                    <td><select class="select-tipo" onchange="cambiarTipo(${v.id}, this.value)">
-                        <option value="poligono" ${v.tipo==='poligono'?'selected':''}>Pol</option>
-                        <option value="objeto" ${v.tipo==='objeto'?'selected':''}>Obj</option>
-                    </select></td>
-                    <td>${v.x.toFixed(0)}</td><td>${v.y.toFixed(0)}</td><td>${v.dist.toFixed(1)}</td>
-                    <td><input type="text" class="input-obs" value="${v.obs}" onchange="guardarObs(${v.id}, this.value)"></td>
-                    <td><button onclick="eliminar(${v.id})" style="border:none; background:none;">❌</button></td>
-                </tr>`;
+            pts.push([v.lat, v.lng]);
+            tbody.innerHTML += `<tr><td>V${i+1}</td><td>${v.x.toFixed(0)}</td><td>${v.y.toFixed(0)}</td><td>${v.dist.toFixed(1)}</td><td onclick="borrar(${i})">❌</td></tr>`;
         });
 
-        poligonoLevantamiento.setLatLngs(puntosPol);
-        document.getElementById('res-pm').innerText = perimetro.toFixed(2);
-        if (puntosPol.length > 2) {
-            const area = turf.area(poligonoLevantamiento.toGeoJSON());
+        poly.setLatLngs(pts);
+        document.getElementById('res-pm').innerText = pm.toFixed(2);
+        if (pts.length > 2) {
+            const area = turf.area(poly.toGeoJSON());
             document.getElementById('res-ha').innerText = (area / 10000).toFixed(4);
         }
     }
 
-    function cambiarTipo(id, t) { verticesData.find(v => v.id === id).tipo = t; actualizarPantalla(); }
-    function guardarObs(id, txt) { verticesData.find(v => v.id === id).obs = txt; localStorage.setItem('syntro_gps_data', JSON.stringify(verticesData)); }
-    function eliminar(id) { verticesData = verticesData.filter(v => v.id !== id); actualizarPantalla(); }
-    function limpiarCache() { if(confirm("¿Borrar todo?")) { verticesData = []; actualizarPantalla(); } }
-
+    function borrar(i) { verticesData.splice(i, 1); actualizar(); }
+    function limpiarTodo() { if(confirm("¿Borrar todo?")) { verticesData = []; actualizar(); } }
     function exportarCSV() {
-        let csv = "VRT,TIPO,X,Y,DIST,OBS\n";
-        verticesData.forEach((v, i) => csv += `V${i+1},${v.tipo},${v.x.toFixed(2)},${v.y.toFixed(2)},${v.dist.toFixed(2)},${v.obs}\n`);
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = "Syntro.csv"; a.click();
+        let c = "VRT,X,Y,DIST\n";
+        verticesData.forEach((v, i) => c += `V${i+1},${v.x},${v.y},${v.dist}\n`);
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([c], {type:'text/csv'})); a.download = "Syntro.csv"; a.click();
     }
-
     function exportarGeoJSON() {
-        const data = poligonoLevantamiento.toGeoJSON();
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'})); a.download = "Poligono.geojson"; a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(poly.toGeoJSON())], {type:'application/json'})); a.download = "Poligono.geojson"; a.click();
     }
-
-    actualizarPantalla();
+    actualizar();
 </script>
 </body>
 </html>
