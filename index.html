@@ -160,11 +160,16 @@
         });
 
         capaPol.setLatLngs(ptsPol);
-        document.getElementById('perim-val').innerText = totalP.toFixed(2);
+        perimetroMetros = totalP;
+        document.getElementById('perim-val').innerText = perimetroMetros.toFixed(2);
         document.getElementById('utm-zona').innerText = datos.length ? datos[0].zone + "N" : "-";
+        
         if(ptsPol.length > 2) {
             areaHectareas = turf.area(capaPol.toGeoJSON()) / 10000;
             document.getElementById('area-val').innerText = areaHectareas.toFixed(4);
+        } else {
+            areaHectareas = 0;
+            document.getElementById('area-val').innerText = "0.0000";
         }
     }
 
@@ -173,37 +178,60 @@
     function borrar(i) { datos.splice(i,1); actualizar(); }
     function limpiar() { if(confirm("¿Borrar?")) { datos = []; actualizar(); } }
 
-    // EXPORTACIONES REPARADAS CON BLOB
     function exportGeoJSON() {
-        if(!datos.length) return;
-        const feat = datos.map((p, i) => ({
-            type: "Feature", geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+        if(!datos.length) { alert("No hay datos"); return; }
+        
+        const features = datos.map((p, i) => ({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [p.lng, p.lat] },
             properties: { id: i+1, tipo: p.tipo, x: p.x, y: p.y, obs: p.obs }
         }));
-        const pol = datos.filter(p => p.tipo === 'POL').map(p => [p.lng, p.lat]);
-        if(pol.length > 2) {
-            pol.push(pol[0]);
-            feat.push({ type: "Feature", geometry: { type: "Polygon", coordinates: [pol] }, properties: { area: areaHectareas } });
+
+        const polCoords = datos.filter(p => p.tipo === 'POL').map(p => [p.lng, p.lat]);
+        if(polCoords.length > 2) {
+            const closure = [...polCoords, polCoords[0]];
+            features.push({
+                type: "Feature",
+                geometry: { type: "Polygon", coordinates: [closure] },
+                properties: { 
+                    nombre: "POLIGONAL_SYNTRO",
+                    area_ha: areaHectareas.toFixed(4),
+                    perimetro_m: perimetroMetros.toFixed(2)
+                }
+            });
         }
-        descargar(JSON.stringify({ type: "FeatureCollection", features: feat }), `SYN_${Date.now()}.geojson`, "application/json");
+        
+        descargar(JSON.stringify({ type: "FeatureCollection", features: features }), `SYN_${Date.now()}.geojson`, "application/json");
     }
 
     function exportCSV() {
-        if(!datos.length) return;
-        let csv = "ID,TIPO,X,Y,DIST,OBS\n";
-        datos.forEach((p, i) => csv += `${i+1},${p.tipo},${p.x},${p.y},${p.dist},"${p.obs}"\n`);
-        descargar(csv, `SYN_${Date.now()}.csv`, "text/csv");
+        if(!datos.length) { alert("No hay datos"); return; }
+        let csv = "ID,TIPO,ESTE_X,NORTE_Y,DISTANCIA_M,OBSERVACION\n";
+        datos.forEach((p, i) => {
+            csv += `${i+1},${p.tipo},${p.x.toFixed(3)},${p.y.toFixed(3)},${p.dist.toFixed(2)},"${p.obs}"\n`;
+        });
+        descargar(csv, `SYN_REPORTE_${Date.now()}.csv`, "text/csv;charset=utf-8");
     }
 
     function descargar(contenido, nombre, tipo) {
-        const blob = new Blob([contenido], { type: tipo });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = nombre;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        try {
+            const blob = new Blob([contenido], { type: tipo });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = nombre;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Tiempo de espera para asegurar que el navegador inicie la descarga antes de limpiar
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 200);
+        } catch (e) {
+            alert("Error al descargar: " + e.message);
+        }
     }
 
     actualizar();
