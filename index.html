@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Geo GPS Syntro Pro - Persistente</title>
+    <title>Geo GPS Syntro Pro</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GPSSyntro">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -12,60 +16,131 @@
     
     <style>
         :root { 
-            --s-navy: #184e77; --s-lime: #d9ed92; --s-blue: #1e6091; --bg: #f4f7f6;
+            --s-navy: #184e77; 
+            --s-lime: #d9ed92; 
+            --s-blue: #1e6091; 
+            --bg: #f4f7f6;
         }
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         body { 
-            font-family: -apple-system, system-ui, sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             margin: 0; display: flex; height: 100vh; flex-direction: row; 
             background: var(--bg); overflow: hidden; 
         }
-        #map { flex: 1; z-index: 1; height: 100%; transition: all 0.4s ease; }
+
+        #map { flex: 1; z-index: 1; height: 100%; transition: all 0.3s ease; }
+
+        /* Panel Principal con Flexbox para organizar el pie */
         .panel { 
-            width: 480px; background: white; z-index: 10; display: flex; 
-            flex-direction: column; box-shadow: -2px 0 15px rgba(0,0,0,0.1); 
-            border-left: 3px solid var(--s-blue); transition: all 0.4s ease;
+            width: 480px; 
+            background: white; 
+            z-index: 10; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: -2px 0 15px rgba(0,0,0,0.1); 
+            border-left: 3px solid var(--s-blue); 
+            transition: all 0.3s ease;
         }
+
+        /* Encabezado Fijo */
         .header { 
-            background: var(--s-navy); color: white; padding: 12px; 
-            text-align: center; border-bottom: 4px solid var(--s-lime); flex-shrink: 0;
+            background: var(--s-navy); 
+            color: white; 
+            padding: 12px; 
+            text-align: center; 
+            border-bottom: 5px solid var(--s-lime);
+            flex-shrink: 0;
         }
-        .content { padding: 12px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        /* Área de contenido con scroll */
+        .content { 
+            padding: 15px; 
+            flex: 1; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            padding-bottom: 80px; /* Espacio para el pie fijo */
+        }
+
+        /* Dashboard de datos 3D */
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .data-card { 
-            background: #fff; border: 1px solid #e0e0e0; padding: 8px; 
-            border-radius: 8px; text-align: center; border-bottom: 3px solid var(--s-blue);
+            background: #fff; border: 1px solid #e0e0e0; padding: 10px; 
+            border-radius: 10px; text-align: center; border-left: 4px solid var(--s-blue); 
         }
         .data-card label { font-size: 0.6rem; font-weight: bold; color: #7f8c8d; text-transform: uppercase; display: block; }
-        .data-card span { font-size: 1rem; font-weight: 700; color: var(--s-navy); }
+        .data-card span { font-size: 1.1rem; font-weight: 700; color: var(--s-navy); }
+
+        /* Botonera Principal */
         .btn { 
             min-height: 48px; padding: 10px; border: none; border-radius: 8px; 
-            font-weight: bold; text-transform: uppercase; font-size: 0.7rem; 
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; 
+            font-weight: bold; text-transform: uppercase; font-size: 0.75rem; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            gap: 8px; transition: 0.1s; -webkit-appearance: none;
         }
-        .btn-capture { background: var(--s-navy); color: white; flex: 2; box-shadow: 0 4px #0d2b42; }
-        .btn-capture:active { transform: translateY(2px); box-shadow: 0 2px #0d2b42; }
+        .btn:active { transform: scale(0.98); }
+        .btn-capture { background: var(--s-navy); color: white; flex: 2; }
         .btn-toggle { background: #f8f9fa; color: var(--s-navy); border: 1px solid var(--s-navy); flex: 1; }
-        .table-container { border: 1px solid #e0e0e0; border-radius: 8px; overflow-x: auto; background: white; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.65rem; min-width: 450px; }
-        th { background: #f8f9fa; padding: 10px 5px; border-bottom: 2px solid #ddd; }
-        td { padding: 8px 4px; text-align: center; border-bottom: 1px solid #eee; }
+
+        /* Tabla Estilizada con scroll horizontal */
+        .table-container { 
+            border: 1px solid #e0e0e0; border-radius: 10px; 
+            overflow-x: auto; background: white; margin-top: 5px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; min-width: 450px; }
+        th { background: #f8f9fa; padding: 12px 8px; color: #7f8c8d; border-bottom: 2px solid #ddd; }
+        td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #f1f3f4; color: #333; }
+
+        .select-tipo { border: 1px solid var(--s-blue); border-radius: 4px; font-size: 0.65rem; padding: 2px; }
         .input-obs { width: 95%; border: 1px solid #ccc; border-radius: 4px; padding: 4px; font-size: 0.65rem; }
+
         .v-marker { 
             background: var(--s-navy); color: white; border-radius: 50%; 
             width: 24px; height: 24px; display: flex; align-items: center; 
-            justify-content: center; font-size: 10px; font-weight: bold; border: 2px solid white; 
+            justify-content: center; font-size: 10px; font-weight: bold; 
+            border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         .v-marker.obj { background: #e67e22; }
-        body.map-hidden #map { width: 0; flex: none; visibility: hidden; }
-        body.map-hidden .panel { width: 100%; border-left: none; }
+
+        /* PIE FIJO DE DESCARGAS (La solución al problema) */
+        .download-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.95);
+            display: grid;
+            grid-template-columns: 1fr 1fr 60px; /* CSV, GEOJSON, BORRAR */
+            gap: 10px;
+            padding: 10px 15px;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+            z-index: 1000; /* Por encima de todo */
+        }
+        .panel-download-footer {
+             position: absolute;
+             bottom: 0;
+             left: 0;
+             width: 100%;
+             grid-template-columns: 1fr 1fr 60px;
+        }
+
+        /* ADAPTACIÓN MÓVIL (Vertical) */
         @media (max-width: 850px) {
             body { flex-direction: column; }
-            #map { height: 35vh; width: 100%; flex: none; }
-            .panel { width: 100%; height: 65vh; border-left: none; border-top: 4px solid var(--s-blue); flex: 1; }
+            #map { height: 40vh; width: 100%; flex: none; }
+            .panel { width: 100%; height: 60vh; border-left: none; border-top: 3px solid var(--s-blue); flex: 1; }
+            
             body.map-hidden #map { height: 0; }
-            body.map-hidden .panel { height: 100vh; }
+            body.map-hidden .panel { height: 100vh; border-top: none; }
         }
+
+        /* Ajuste de los botones de descarga en el pie */
+        .btn-download { background: white; border: 1px solid #dadce0; color: #5f6368; font-size: 0.7rem; min-height: 44px; }
+        .btn-danger { background: #f2dede; color: #a94442; border: 1px solid #ebccd1; min-height: 44px; }
     </style>
 </head>
 <body id="main-body">
@@ -74,12 +149,18 @@
 
 <div class="panel">
     <div class="header">
-        <div style="font-size: 0.8rem; font-weight: 800; letter-spacing: 2px;">SYNTRO GPS PRO</div>
+        <div style="font-size: 0.8rem; letter-spacing: 2px; font-weight: 800; color: #fff;">SYNTRO GPS PRO</div>
+        <div style="font-size: 0.6rem; letter-spacing: 1.5px; font-weight: 300; margin-top:3px;">GPS INGENIERÍA</div>
     </div>
 
     <div class="content">
+        <input type="file" id="inGeoJSON" style="display:none" accept=".geojson" onchange="importarMapaBase(event)">
+        <button class="btn btn-import" onclick="document.getElementById('inGeoJSON').click()">
+            📂 CARGAR MAPA BASE (GEOJSON)
+        </button>
+        
         <div class="dashboard">
-            <div class="data-card"><label>Hectáreas</label><span id="res-ha">0.0000</span></div>
+            <div class="data-card"><label>Hectáreas (Polígono)</label><span id="res-ha">0.0000</span></div>
             <div class="data-card"><label>Perímetro (m)</label><span id="res-pm">0.00</span></div>
         </div>
 
@@ -104,22 +185,28 @@
                 <tbody id="tabla-atributos"></tbody>
             </table>
         </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top: auto; padding-bottom: 10px;">
-            <button class="btn" style="background:#fff; border:1px solid #ccc;" onclick="exportarCSV()">CSV</button>
-            <button class="btn" style="background:#f2dede; color:#a94442; border:1px solid #ebccd1;" onclick="limpiarTodo()">🗑️ BORRAR TODO</button>
-        </div>
+        
+    </div>
+    
+    <div class="download-footer panel-download-footer">
+        <button class="btn btn-download" onclick="exportarCSV()">CSV</button>
+        <button class="btn btn-download" onclick="exportarPoligonoGeoJSON()">GEOJSON</button>
+        <button class="btn btn-danger" onclick="limpiarTodo()" title="Borrar caché de la app">🗑️</button>
     </div>
 </div>
 
 <script>
+    // Configuración Geográfica
     const utm19N = "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs";
     const wgs84 = "EPSG:4326";
     let verticesData = JSON.parse(localStorage.getItem('syntro_gps_data')) || []; 
     let marcadoresCapas = [];
 
+    // Inicializar Mapa centrado en Maracaibo
     const map = L.map('map', { tap: false, zoomControl: false }).setView([10.6447, -71.6106], 15);
-    L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
+    L.control.zoom({ position: 'topleft' }).addTo(map);
+    
+    L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
     
     let poligonoLevantamiento = L.polygon([], {color: '#d9ed92', weight: 3, fillOpacity: 0.4}).addTo(map);
 
@@ -136,7 +223,7 @@
             const { latitude: lat, longitude: lng } = pos.coords;
             map.setView([lat, lng], 19);
             agregarPunto(lat, lng);
-        }, err => alert("Error: Verifica permisos de ubicación"), { enableHighAccuracy: true });
+        }, err => alert("GPS Error: Verifica permisos de ubicación."), { enableHighAccuracy: true, timeout: 10000 });
     }
 
     function agregarPunto(lat, lng) {
@@ -145,24 +232,23 @@
             id: Date.now(), lat, lng, x: utm[0], y: utm[1], 
             dist: 0, tipo: 'poligono', obs: '' 
         });
-        actualizarTodo();
+        renderizarTodo();
     }
 
-    function actualizarTodo() {
-        // Guardar en caché (LocalStorage)
+    function renderizarTodo() {
+        // Guardar en caché
         localStorage.setItem('syntro_gps_data', JSON.stringify(verticesData));
         
-        // Limpiar marcadores viejos
+        // Limpiar
         marcadoresCapas.forEach(m => map.removeLayer(m));
         marcadoresCapas = [];
-        
         const tbody = document.getElementById('tabla-atributos');
         tbody.innerHTML = "";
+        
         let perimetro = 0;
         let puntosPoligono = [];
 
         verticesData.forEach((v, i) => {
-            // Lógica de distancia corregida
             if (v.tipo === 'poligono') {
                 if (puntosPoligono.length > 0) {
                     const prev = puntosPoligono[puntosPoligono.length - 1];
@@ -181,7 +267,6 @@
             }).addTo(map);
             marcadoresCapas.push(m);
 
-            // Insertar Fila
             tbody.innerHTML += `
                 <tr>
                     <td><b>V${i+1}</b></td>
@@ -195,7 +280,7 @@
                     <td>${v.y.toFixed(0)}</td>
                     <td>${v.dist.toFixed(1)}</td>
                     <td><input type="text" class="input-obs" value="${v.obs}" onchange="guardarObs(${v.id}, this.value)"></td>
-                    <td><button onclick="eliminarVértice(${v.id})" style="border:none; background:none; cursor:pointer;">❌</button></td>
+                    <td><button onclick="eliminarVértice(${v.id})" style="color:red; border:none; background:none; cursor:pointer;">❌</button></td>
                 </tr>`;
         });
 
@@ -208,14 +293,11 @@
         } else {
             document.getElementById('res-ha').innerText = "0.0000";
         }
-        if(verticesData.length > 0 && !map.getBounds().contains(marcadoresCapas[0].getLatLng())) {
-             map.panTo(marcadoresCapas[marcadoresCapas.length-1].getLatLng());
-        }
     }
 
     function cambiarTipo(id, tipo) {
         verticesData.find(v => v.id === id).tipo = tipo;
-        actualizarTodo();
+        renderizarTodo();
     }
 
     function guardarObs(id, txt) {
@@ -225,18 +307,18 @@
 
     function eliminarVértice(id) {
         verticesData = verticesData.filter(v => v.id !== id);
-        actualizarTodo();
+        renderizarTodo();
     }
 
     function limpiarTodo() {
-        if(confirm("¿Seguro que quieres borrar todos los datos guardados?")) {
+        if(confirm("¿Seguro que quieres borrar todos los datos guardados en caché?")) {
             verticesData = [];
-            actualizarTodo();
+            renderizarTodo();
         }
     }
 
     function exportarCSV() {
-        let csv = "ID,TIPO,X,Y,DIST_M,OBS\n";
+        let csv = "ID,TIPO,ESTE_X,NORTE_Y,DIST_M,OBS\n";
         verticesData.forEach((v, i) => {
             csv += `V${i+1},${v.tipo},${v.x.toFixed(2)},${v.y.toFixed(2)},${v.dist.toFixed(2)},${v.obs}\n`;
         });
@@ -244,8 +326,23 @@
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Syntro_Levantamiento.csv"; a.click();
     }
 
+    function exportarPoligonoGeoJSON() {
+        if (puntosPoligono.length < 3) return alert("Se requieren al menos 3 puntos de tipo Polígono.");
+        const data = poligonoLevantamiento.toGeoJSON();
+        descargar(new Blob([JSON.stringify(data)], {type: 'application/json'}), "Poligono_Syntro.geojson");
+    }
+
+    function importarMapaBase(e) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const geo = JSON.parse(ev.target.result);
+            L.geoJSON(geo, { style: { color: '#3498db', weight: 2, dashArray: '5,5' } }).addTo(map);
+        };
+        reader.readAsText(e.target.files[0]);
+    }
+
     // Cargar datos al iniciar
-    actualizarTodo();
+    renderizarTodo();
 </script>
 </body>
 </html>
