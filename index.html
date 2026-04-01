@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Geo GPS Syntro Pro</title>
     
-    <link rel="icon" type="image/png" href="icono.png?v=3">
-    <link rel="apple-touch-icon" href="icono.png?v=3">
+    <link rel="icon" type="image/png" href="icono.png?v=4">
+    <link rel="apple-touch-icon" href="icono.png?v=4">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#184e77">
 
@@ -18,71 +18,90 @@
     <style>
         :root { --s-navy: #184e77; --s-lime: #d9ed92; --s-blue: #1e6091; --bg: #f4f7f6; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; flex-direction: row; background: var(--bg); overflow: hidden; }
         
-        #map { flex: 1; height: 100%; }
+        #map { flex: 1; height: 100%; transition: 0.3s; }
 
         .panel { 
-            width: 400px; background: white; display: flex; flex-direction: column; 
+            width: 420px; background: white; display: flex; flex-direction: column; 
             box-shadow: -2px 0 10px rgba(0,0,0,0.1); border-left: 3px solid var(--s-blue);
-            position: relative; height: 100vh;
+            position: relative; height: 100vh; transition: 0.3s;
         }
 
-        .header { background: var(--s-navy); color: white; padding: 8px; text-align: center; border-bottom: 4px solid var(--s-lime); }
-        .header img { height: 35px; }
+        /* Cabecera Compacta */
+        .header { background: var(--s-navy); color: white; padding: 5px; text-align: center; border-bottom: 3px solid var(--s-lime); flex-shrink: 0; }
+        .header img { height: 30px; margin-bottom: 2px; }
+        .header div { font-size: 0.5rem; letter-spacing: 1px; font-weight: 300; }
 
-        /* Contenedor de scroll limitado para que no empuje los botones */
         .content { 
-            flex: 1; overflow-y: auto; padding: 12px; 
-            display: flex; flex-direction: column; gap: 10px;
-            margin-bottom: 75px; /* Espacio obligatorio para los botones */
+            flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;
+            margin-bottom: 65px; /* Espacio para botones de descarga */
         }
 
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .data-card { background: #fff; border: 1px solid #ddd; padding: 8px; border-radius: 8px; text-align: center; border-left: 4px solid var(--s-blue); }
-        .data-card label { font-size: 0.6rem; color: #7f8c8d; display: block; }
-        .data-card span { font-size: 1rem; font-weight: bold; color: var(--s-navy); }
+        /* Botón Cargar pequeño */
+        .btn-import { 
+            background: var(--s-lime); color: var(--s-navy); padding: 6px; 
+            font-size: 0.65rem; border-radius: 5px; border: none; font-weight: bold; cursor: pointer;
+        }
 
-        .btn { min-height: 44px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; cursor: pointer; border: none; text-transform: uppercase; }
-        .btn-capture { background: var(--s-navy); color: white; width: 100%; margin-bottom: 5px; }
-        
-        .table-container { border: 1px solid #eee; border-radius: 8px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.65rem; min-width: 400px; }
-        th { background: #f8f9fa; padding: 10px; border-bottom: 1px solid #ddd; }
-        td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .data-card { background: #fff; border: 1px solid #eee; padding: 5px; border-radius: 8px; text-align: center; border-left: 3px solid var(--s-blue); }
+        .data-card label { font-size: 0.55rem; color: #7f8c8d; display: block; text-transform: uppercase; }
+        .data-card span { font-size: 0.9rem; font-weight: bold; color: var(--s-navy); }
 
-        /* PIE DE PÁGINA FIJO (NUNCA SE MUEVE) */
+        .btn-main-row { display: flex; gap: 5px; }
+        .btn { min-height: 40px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; cursor: pointer; border: none; text-transform: uppercase; }
+        .btn-capture { background: var(--s-navy); color: white; flex: 2; }
+        .btn-toggle { background: #f8f9fa; color: var(--s-navy); border: 1px solid var(--s-navy); flex: 1; }
+
+        .table-container { border: 1px solid #eee; border-radius: 8px; overflow-x: auto; background: #fff; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.65rem; min-width: 380px; }
+        th { background: #f8f9fa; padding: 8px; border-bottom: 1px solid #ddd; color: #666; }
+        td { padding: 6px; border-bottom: 1px solid #eee; text-align: center; }
+
+        /* PIE DE DESCARGA FIJO Y COMPACTO */
         .footer-fixed {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 70px;
-            background: #fff; border-top: 2px solid var(--s-lime);
-            display: grid; grid-template-columns: 1fr 1fr 50px; gap: 8px; padding: 10px;
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 60px;
+            background: #fff; border-top: 1px solid #ddd;
+            display: grid; grid-template-columns: 1fr 1fr 45px; gap: 8px; padding: 10px;
             z-index: 2000;
         }
+        .btn-dl { background: #f8f9fa; border: 1px solid #ccc; font-size: 0.6rem; color: #444; }
 
+        /* MÓVIL */
         @media (max-width: 850px) {
             body { flex-direction: column; }
-            #map { height: 40%; width: 100%; }
-            .panel { width: 100%; height: 60%; border-left: none; }
+            #map { height: 35%; width: 100%; flex: none; }
+            .panel { width: 100%; height: 65%; border-left: none; border-top: 3px solid var(--s-blue); }
+            body.map-hidden #map { height: 0; }
+            body.map-hidden .panel { height: 100vh; }
         }
     </style>
 </head>
-<body>
+<body id="main-body">
 
 <div id="map"></div>
 
 <div class="panel">
     <div class="header">
         <img src="logo.png" alt="Syntro">
-        <div style="font-size: 0.5rem; letter-spacing: 1px;">GPS INGENIERÍA</div>
+        <div>GPS INGENIERÍA</div>
     </div>
 
     <div class="content">
+        <input type="file" id="inGeo" style="display:none" accept=".geojson" onchange="importar(event)">
+        <button class="btn-import" onclick="document.getElementById('inGeo').click()">📂 CARGAR MAPA BASE</button>
+
         <div class="dashboard">
-            <div class="data-card"><label>HECTÁREAS</label><span id="res-ha">0.0000</span></div>
-            <div class="data-card"><label>PERÍMETRO (M)</label><span id="res-pm">0.00</span></div>
+            <div class="data-card"><label>Hectáreas</label><span id="res-ha">0.0000</span></div>
+            <div class="data-card"><label>Perímetro (m)</label><span id="res-pm">0.00</span></div>
         </div>
 
-        <button class="btn btn-capture" onclick="capturarVértice()">📍 FIJAR VÉRTICE ACTUAL</button>
+        <div class="btn-main-row">
+            <button class="btn btn-capture" onclick="capturar()">📍 FIJAR VÉRTICE</button>
+            <button class="btn btn-toggle" onclick="toggleMap()">🎬 MAPA</button>
+        </div>
 
         <div class="table-container">
             <table>
@@ -95,42 +114,54 @@
     </div>
 
     <div class="footer-fixed">
-        <button class="btn" style="background:#eee;" onclick="exportarCSV()">CSV</button>
-        <button class="btn" style="background:#eee;" onclick="exportarGeoJSON()">GEOJSON</button>
-        <button class="btn" style="background:#f2dede; color:red;" onclick="limpiarTodo()">🗑️</button>
+        <button class="btn btn-dl" onclick="exportCSV()">CSV</button>
+        <button class="btn btn-dl" onclick="exportGeo()">GEOJSON</button>
+        <button class="btn" style="background:#f2dede; color:red;" onclick="limpiar()">🗑️</button>
     </div>
 </div>
 
 <script>
     const utm19N = "+proj=utm +zone=19 +ellps=WGS84 +datum=WGS84 +units=m +no_defs";
     const wgs84 = "EPSG:4326";
-    let verticesData = JSON.parse(localStorage.getItem('syntro_data')) || [];
+    let vertices = JSON.parse(localStorage.getItem('syntro_v3')) || [];
+    let markers = [];
 
     const map = L.map('map', { zoomControl: false }).setView([10.64, -71.61], 15);
     L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3']}).addTo(map);
-    let poly = L.polygon([], {color: '#d9ed92', weight: 3}).addTo(map);
+    let poly = L.polygon([], {color: '#d9ed92', weight: 3, fillOpacity: 0.3}).addTo(map);
 
-    function capturarVértice() {
+    function toggleMap() { 
+        document.getElementById('main-body').classList.toggle('map-hidden');
+        setTimeout(() => map.invalidateSize(), 400);
+    }
+
+    function capturar() {
         navigator.geolocation.getCurrentPosition(p => {
             const { latitude: lat, longitude: lng } = p.coords;
             const utm = proj4(wgs84, utm19N, [lng, lat]);
-            verticesData.push({ lat, lng, x: utm[0], y: utm[1], dist: 0 });
-            actualizar();
+            vertices.push({ lat, lng, x: utm[0], y: utm[1], dist: 0 });
+            render();
         }, null, { enableHighAccuracy: true });
     }
 
-    function actualizar() {
-        localStorage.setItem('syntro_data', JSON.stringify(verticesData));
+    function render() {
+        localStorage.setItem('syntro_v3', JSON.stringify(vertices));
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
         const tbody = document.getElementById('tabla-atributos');
         tbody.innerHTML = "";
         let pts = [], pm = 0;
 
-        verticesData.forEach((v, i) => {
+        vertices.forEach((v, i) => {
             if (pts.length > 0) {
                 v.dist = map.distance(pts[pts.length - 1], [v.lat, v.lng]);
                 pm += v.dist;
             }
             pts.push([v.lat, v.lng]);
+            
+            const m = L.circleMarker([v.lat, v.lng], {radius: 5, color: '#184e77', fillOpacity: 1}).addTo(map);
+            markers.push(m);
+
             tbody.innerHTML += `<tr><td>V${i+1}</td><td>${v.x.toFixed(0)}</td><td>${v.y.toFixed(0)}</td><td>${v.dist.toFixed(1)}</td><td onclick="borrar(${i})">❌</td></tr>`;
         });
 
@@ -142,17 +173,34 @@
         }
     }
 
-    function borrar(i) { verticesData.splice(i, 1); actualizar(); }
-    function limpiarTodo() { if(confirm("¿Borrar todo?")) { verticesData = []; actualizar(); } }
-    function exportarCSV() {
+    function borrar(i) { vertices.splice(i, 1); render(); }
+    function limpiar() { if(confirm("¿Borrar datos?")) { vertices = []; render(); } }
+
+    function exportCSV() {
         let c = "VRT,X,Y,DIST\n";
-        verticesData.forEach((v, i) => c += `V${i+1},${v.x},${v.y},${v.dist}\n`);
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([c], {type:'text/csv'})); a.download = "Syntro.csv"; a.click();
+        vertices.forEach((v, i) => c += `V${i+1},${v.x.toFixed(2)},${v.y.toFixed(2)},${v.dist.toFixed(2)}\n`);
+        descargar(new Blob([c], {type:'text/csv'}), "Levantamiento.csv");
     }
-    function exportarGeoJSON() {
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(poly.toGeoJSON())], {type:'application/json'})); a.download = "Poligono.geojson"; a.click();
+
+    function exportGeo() {
+        if(vertices.length < 3) return alert("Mínimo 3 puntos");
+        descargar(new Blob([JSON.stringify(poly.toGeoJSON())], {type:'application/json'}), "Poligono.geojson");
     }
-    actualizar();
+
+    function importar(e) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const geo = JSON.parse(ev.target.result);
+            L.geoJSON(geo, {style: {color: '#3498db', weight: 2, dashArray: '4'}}).addTo(map);
+        };
+        reader.readAsText(e.target.files[0]);
+    }
+
+    function descargar(blob, name) {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    }
+
+    render();
 </script>
 </body>
 </html>
