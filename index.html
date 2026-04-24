@@ -14,25 +14,19 @@
         :root { --s-navy: #184e77; --s-lime: #d9ed92; --bg: #e9ecef; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); }
         
-        /* Contenedor del mapa con ID para control directo */
-        #map-container { 
-            flex: 1; 
-            height: 100vh; 
-            display: block; /* Aseguramos que inicie visible */
-            background: #222; 
-        }
+        #map-container { flex: 1; height: 100vh; display: block; background: #222; }
         #map { height: 100%; width: 100%; }
 
         .panel { width: 600px; background: var(--bg); display: flex; flex-direction: column; height: 100vh; z-index: 1000; }
-        
-        /* Clase para expandir el panel cuando el mapa no esté */
         .panel-full { width: 100% !important; flex: 1 !important; }
         
         .header { background: var(--s-navy); color: white; padding: 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid var(--s-lime); }
+        
         .toolbar { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .btn-gps { grid-column: span 2; background: var(--s-navy); color: white; height: 65px; border: none; font-size: 1.1rem; font-weight: bold; border-radius: 12px; cursor: pointer; }
-        .btn-gps:active { background: #0d2b42; }
         
+        .btn-export { padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-weight: bold; background: white; color: var(--s-navy); cursor: pointer; }
+
         .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 15px; margin-bottom: 10px; }
         .stat-card { background: white; padding: 10px; border-radius: 10px; text-align: center; border: 1px solid #ddd; }
         .stat-card b { color: var(--s-navy); font-size: 1rem; }
@@ -61,6 +55,9 @@
     
     <div class="toolbar">
         <button id="mainBtn" class="btn-gps" onclick="capturar()">📍 CAPTURAR VÉRTICE</button>
+        <button class="btn-export" onclick="exportGeoJSON()">📥 GEOJSON</button>
+        <button class="btn-export" onclick="exportCSV()">📥 EXCEL (CSV)</button>
+        <button style="color:#e74c3c; grid-column: span 2; font-size: 0.85rem; background: none; border: none; cursor:pointer; font-weight:bold; margin-top:5px;" onclick="limpiar()">🗑️ BORRAR TODO</button>
     </div>
 
     <div class="stats">
@@ -87,47 +84,37 @@
 </div>
 
 <script>
-    // 1. Registro de Service Worker para asegurar funcionamiento Offline
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js').catch(err => console.log("SW Error", err));
     }
 
     let datos = JSON.parse(localStorage.getItem('syntro_v12_7')) || [];
     let marcadores = [];
-    
-    // 2. Inicialización robusta del mapa
     let map;
+    let areaHectareas = 0;
+    let perimetroMetros = 0;
+
     try {
         map = L.map('map', { zoomControl: false, fadeAnimation: false }).setView([10, -67], 5);
-        
-        // Solo cargar capas externas si hay internet
         if (navigator.onLine) {
             L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
                 maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3']
             }).addTo(map);
         }
-    } catch (e) {
-        console.log("Error cargando Leaflet offline:", e);
-    }
+    } catch (e) { console.log("Offline Mode: Leaflet assets used."); }
 
     const capaPol = L.polygon([], {color: '#d9ed92', weight: 3}).addTo(map);
 
-    // 3. FUNCIÓN CORREGIDA: Control total del DOM
     function toggleVista() {
         const mContainer = document.getElementById('map-container');
         const mPanel = document.getElementById('main-panel');
-        
-        // Si está visible o no tiene estilo (default), lo ocultamos
         if (mContainer.style.display !== 'none') {
             mContainer.style.display = 'none';
             mPanel.classList.add('panel-full');
         } else {
             mContainer.style.display = 'block';
             mPanel.classList.remove('panel-full');
-            // Re-calcular tamaño del mapa al volver a mostrar
-            if(map) {
-                setTimeout(() => { map.invalidateSize(); }, 100);
-            }
+            if(map) setTimeout(() => { map.invalidateSize(); }, 100);
         }
     }
 
@@ -173,28 +160,67 @@
             if(map) {
                 marcadores.push(L.circleMarker([p.lat, p.lng], { radius: 5, color: 'white', fillColor: '#184e77', fillOpacity: 1 }).addTo(map));
             }
-            
             tbody.innerHTML += `<tr>
-                <td>${i+1}</td>
-                <td>${p.tipo}</td>
-                <td class="coord-val">${p.x.toFixed(2)}</td>
-                <td class="coord-val">${p.y.toFixed(2)}</td>
+                <td>${i+1}</td><td>${p.tipo}</td>
+                <td class="coord-val">${p.x.toFixed(2)}</td><td class="coord-val">${p.y.toFixed(2)}</td>
                 <td>${p.dist.toFixed(2)}</td>
                 <td onclick="borrar(${i})" style="color:red; cursor:pointer">×</td>
             </tr>`;
         });
 
         if(map) capaPol.setLatLngs(ptsPol);
-        document.getElementById('perim-val').innerText = totalP.toFixed(2);
+        perimetroMetros = totalP;
+        document.getElementById('perim-val').innerText = perimetroMetros.toFixed(2);
         document.getElementById('utm-zona').innerText = datos.length ? datos[0].zone + "N" : "-";
         
         if(ptsPol.length > 2 && typeof turf !== 'undefined') {
-            const area = turf.area(capaPol.toGeoJSON()) / 10000;
-            document.getElementById('area-val').innerText = area.toFixed(4);
+            areaHectareas = turf.area(capaPol.toGeoJSON()) / 10000;
+            document.getElementById('area-val').innerText = areaHectareas.toFixed(4);
+        } else {
+            areaHectareas = 0;
+            document.getElementById('area-val').innerText = "0.0000";
         }
     }
 
+    function exportGeoJSON() {
+        if(!datos.length) { alert("No hay datos"); return; }
+        const features = datos.map((p, i) => ({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+            properties: { id: i+1, x: p.x, y: p.y }
+        }));
+        if(datos.length > 2) {
+            const coords = [...datos.map(p => [p.lng, p.lat]), [datos[0].lng, datos[0].lat]];
+            features.push({
+                type: "Feature",
+                geometry: { type: "Polygon", coordinates: [coords] },
+                properties: { area_ha: areaHectareas.toFixed(4), perimetro_m: perimetroMetros.toFixed(2) }
+            });
+        }
+        descargar(JSON.stringify({ type: "FeatureCollection", features }), `SYN_${Date.now()}.geojson`, "application/json");
+    }
+
+    function exportCSV() {
+        if(!datos.length) { alert("No hay datos"); return; }
+        let csv = "ID,ESTE_X,NORTE_Y,LAT,LNG,DIST_M\n";
+        datos.forEach((p, i) => {
+            csv += `${i+1},${p.x.toFixed(3)},${p.y.toFixed(3)},${p.lat},${p.lng},${p.dist.toFixed(2)}\n`;
+        });
+        descargar(csv, `REPORTE_${Date.now()}.csv`, "text/csv;charset=utf-8");
+    }
+
+    function descargar(contenido, nombre, tipo) {
+        const blob = new Blob([contenido], { type: tipo });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = nombre;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
     function borrar(i) { datos.splice(i,1); actualizar(); }
+    function limpiar() { if(confirm("¿Borrar todo?")) { datos = []; actualizar(); } }
     actualizar();
 </script>
 </body>
