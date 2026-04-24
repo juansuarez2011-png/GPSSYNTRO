@@ -14,31 +14,38 @@
         :root { --s-navy: #184e77; --s-lime: #d9ed92; --bg: #e9ecef; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); }
-        #map-container { flex: 1; height: 100vh; position: relative; transition: all 0.3s ease; border-right: 2px solid #ccc; display: block; }
-        #map { height: 100%; width: 100%; background: #222; }
-        #map-container.map-hidden { display: none !important; }
-        .panel { width: 600px; background: var(--bg); display: flex; flex-direction: column; height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; transition: all 0.3s ease; }
-        .panel.panel-full { width: 100% !important; }
+        
+        #map-container { flex: 1; height: 100vh; position: relative; border-right: 2px solid #ccc; background: #222; }
+        #map { height: 100%; width: 100%; }
+
+        .panel { width: 600px; background: var(--bg); display: flex; flex-direction: column; height: 100vh; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; }
+        .panel.panel-full { width: 100% !important; flex: 1 !important; }
+        
         .header { background: var(--s-navy); color: white; padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid var(--s-lime); }
         .header img { height: 40px; }
+
         .toolbar { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .btn-gps { grid-column: span 2; background: var(--s-navy); color: white; height: 70px; border: none; font-size: 1.2rem; font-weight: bold; border-radius: 15px; cursor: pointer; box-shadow: 0 6px 0 #0d2b42; }
         .btn-gps:active { transform: translateY(3px); box-shadow: 0 2px 0 #0d2b42; }
+        
         button.action { padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-weight: bold; background: white; color: var(--s-navy); cursor: pointer; }
+
         .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 15px; margin-bottom: 15px; }
         .stat-card { background: white; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #ddd; }
         .stat-card small { font-size: 0.7rem; color: #666; display: block; }
         .stat-card b { font-size: 1.1rem; color: var(--s-navy); }
+
         .table-wrap { flex: 1; overflow: auto; margin: 0 15px 15px 15px; background: white; border-radius: 15px; border: 1px solid #ddd; }
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        th { background: #f8f9fa; padding: 12px; position: sticky; top: 0; border-bottom: 2px solid var(--s-lime); }
+        th { background: #f8f9fa; padding: 12px; position: sticky; top: 0; border-bottom: 2px solid var(--s-lime); z-index: 10; }
         td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
         .coord-val { font-family: monospace; font-weight: bold; color: #c0392b; }
+
         @media (max-width: 850px) {
             body { flex-direction: column; }
             #map-container { height: 40vh; width: 100%; border-right: none; }
             .panel { width: 100%; height: 60vh; }
-            .panel.panel-full { height: 100vh !important; }
+            .panel.panel-full { height: 100vh !important; width: 100% !important; }
         }
     </style>
 </head>
@@ -86,7 +93,7 @@
 
 <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js');
+        navigator.serviceWorker.register('service-worker.js').catch(() => {});
     }
 
     let datos = JSON.parse(localStorage.getItem('syntro_v12_7')) || [];
@@ -106,9 +113,18 @@
     const capaPol = L.polygon([], {color: '#d9ed92', weight: 4, fillOpacity: 0.3}).addTo(map);
 
     function toggleVista() {
-        document.getElementById('map-container').classList.toggle('map-hidden');
-        document.getElementById('main-panel').classList.toggle('panel-full');
-        setTimeout(() => map.invalidateSize(), 400);
+        const mapCont = document.getElementById('map-container');
+        const panel = document.getElementById('main-panel');
+        
+        if (mapCont.style.display === 'none') {
+            mapCont.style.display = 'block';
+            panel.classList.remove('panel-full');
+        } else {
+            mapCont.style.display = 'none';
+            panel.classList.add('panel-full');
+        }
+        
+        setTimeout(() => { map.invalidateSize(); }, 300);
     }
 
     function getUTMData(lat, lng) {
@@ -129,7 +145,7 @@
             actualizar();
             map.setView([lat, lng], 19);
         }, err => { 
-            alert("Error GPS"); 
+            alert("Error GPS: " + err.message); 
             btn.innerText = "📍 CAPTURAR VÉRTICE"; 
         }, { enableHighAccuracy: true, timeout: 15000 });
     }
@@ -160,7 +176,7 @@
                 <td class="coord-val">${p.x.toFixed(2)}</td><td class="coord-val">${p.y.toFixed(2)}</td>
                 <td>${p.dist.toFixed(2)}</td>
                 <td><input type="text" value="${p.obs}" onchange="cambiarObs(${i}, this.value)" style="width:80px"></td>
-                <td onclick="borrar(${i})" style="color:red; cursor:pointer">×</td>
+                <td onclick="borrar(${i})" style="color:red; cursor:pointer; font-weight:bold; font-size:1.2rem">×</td>
             </tr>`;
         });
 
@@ -181,7 +197,7 @@
     function cambiarTipo(i, v) { datos[i].tipo = v; actualizar(); }
     function cambiarObs(i, v) { datos[i].obs = v; localStorage.setItem('syntro_v12_7', JSON.stringify(datos)); }
     function borrar(i) { datos.splice(i,1); actualizar(); }
-    function limpiar() { if(confirm("¿Borrar?")) { datos = []; actualizar(); } }
+    function limpiar() { if(confirm("¿Borrar todos los datos?")) { datos = []; actualizar(); } }
 
     function exportGeoJSON() {
         if(!datos.length) return;
